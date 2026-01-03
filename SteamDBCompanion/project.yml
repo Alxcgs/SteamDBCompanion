@@ -1,0 +1,41 @@
+name: SteamDBCompanion
+options:
+  bundleIdPrefix: com.steamdb
+  deploymentTarget:
+    iOS: 17.0
+  
+targets:
+  SteamDBCompanion:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Core
+      - Features
+      - LiquidGlass
+      - SharedUI
+      - Notifications
+      - Widgets
+      - WatchApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.steamdb.SteamDBCompanion
+        INFOPLIST_FILE: Info.plist
+        SWIFT_VERSION: 5.9
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - package: SwiftSoup
+    
+  SteamDBCompanionTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+    dependencies:
+      - target: SteamDBCompanion
+      - package: SwiftSoup
+
+packages:
+  SwiftSoup:
+    url: https://github.com/scinfu/SwiftSoup.git
+    from: 2.7.0
