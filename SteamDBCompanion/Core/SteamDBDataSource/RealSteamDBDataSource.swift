@@ -17,8 +17,7 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
         let data = try await networking.fetchData(url: url)
         let html = String(data: data, encoding: .utf8) ?? ""
         
-        // Reuse trending parser or create specific search parser
-        return try parser.parseTrending(html: html) 
+        return try parser.parseSearchResults(html: html)
     }
     
     public func fetchAppDetails(appID: Int) async throws -> SteamApp {
@@ -52,47 +51,116 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     }
     
     public func fetchTopSellers() async throws -> [SteamApp] {
-        // Similar to trending, might need different selector
-        return try await fetchTrending() 
+        let cacheKey = "top_sellers"
+        if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamApp].self, expiration: 1800) {
+            return cached
+        }
+
+        let url = baseURL.appendingPathComponent("topsellers/")
+        let data = try await networking.fetchData(url: url)
+        let html = String(data: data, encoding: .utf8) ?? ""
+        let apps = try parser.parseTopSellers(html: html)
+        let result = apps.isEmpty ? try await fetchTrending() : apps
+        await CacheService.shared.save(result, for: cacheKey)
+        return result
     }
     
     public func fetchMostPlayed() async throws -> [SteamApp] {
+        let cacheKey = "most_played"
+        if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamApp].self, expiration: 1800) {
+            return cached
+        }
+
         let url = baseURL.appendingPathComponent("graph/")
         let data = try await networking.fetchData(url: url)
         let html = String(data: data, encoding: .utf8) ?? ""
-        
-        return try parser.parseTrending(html: html)
+        let apps = try parser.parseMostPlayed(html: html)
+        let result = apps.isEmpty ? try await fetchTrending() : apps
+        await CacheService.shared.save(result, for: cacheKey)
+        return result
     }
     
     public func fetchPriceHistory(appID: Int) async throws -> PriceHistory {
-        // TODO: Parse price history from SteamDB charts page
-        // For now, return empty history
-        // In production, would parse from: https://steamdb.info/app/{appID}/charts/
-        
         let cacheKey = "price_history_\(appID)"
         if let cached = await CacheService.shared.load(key: cacheKey, type: PriceHistory.self, expiration: 7200) { // 2hrs
             return cached
         }
-        
-        // Stub implementation - would parse HTML chart data in production
-        let history = PriceHistory(appID: appID, currency: "USD", points: [])
+
+        let url = baseURL.appendingPathComponent("app/\(appID)/charts/")
+        let data = try await networking.fetchData(url: url)
+        let html = String(data: data, encoding: .utf8) ?? ""
+        let history = try parser.parsePriceHistory(html: html, appID: appID)
         await CacheService.shared.save(history, for: cacheKey)
         return history
     }
     
     public func fetchPlayerTrend(appID: Int) async throws -> PlayerTrend {
-        // TODO: Parse player trend from SteamDB charts page
-        // For now, return empty trend
-        // In production, would parse from: https://steamdb.info/app/{appID}/charts/
-        
         let cacheKey = "player_trend_\(appID)"
         if let cached = await CacheService.shared.load(key: cacheKey, type: PlayerTrend.self, expiration: 1800) { // 30min
             return cached
         }
-        
-        // Stub implementation
-        let trend = PlayerTrend(appID: appID, points: [])
+
+        let url = baseURL.appendingPathComponent("app/\(appID)/charts/")
+        let data = try await networking.fetchData(url: url)
+        let html = String(data: data, encoding: .utf8) ?? ""
+        let trend = try parser.parsePlayerTrend(html: html, appID: appID)
         await CacheService.shared.save(trend, for: cacheKey)
         return trend
+    }
+
+    public func fetchPackages(appID: Int) async throws -> [SteamPackage] {
+        let cacheKey = "packages_\(appID)"
+        if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamPackage].self, expiration: 3600) {
+            return cached
+        }
+
+        let url = baseURL.appendingPathComponent("app/\(appID)/packages/")
+        let data = try await networking.fetchData(url: url)
+        let html = String(data: data, encoding: .utf8) ?? ""
+        let packages = try parser.parsePackages(html: html)
+        await CacheService.shared.save(packages, for: cacheKey)
+        return packages
+    }
+
+    public func fetchDepots(appID: Int) async throws -> [SteamDepot] {
+        let cacheKey = "depots_\(appID)"
+        if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamDepot].self, expiration: 3600) {
+            return cached
+        }
+
+        let url = baseURL.appendingPathComponent("app/\(appID)/depots/")
+        let data = try await networking.fetchData(url: url)
+        let html = String(data: data, encoding: .utf8) ?? ""
+        let depots = try parser.parseDepots(html: html)
+        await CacheService.shared.save(depots, for: cacheKey)
+        return depots
+    }
+
+    public func fetchBadges(appID: Int) async throws -> [SteamBadge] {
+        let cacheKey = "badges_\(appID)"
+        if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamBadge].self, expiration: 3600) {
+            return cached
+        }
+
+        let url = baseURL.appendingPathComponent("app/\(appID)/badges/")
+        let data = try await networking.fetchData(url: url)
+        let html = String(data: data, encoding: .utf8) ?? ""
+        let badges = try parser.parseBadges(html: html)
+        await CacheService.shared.save(badges, for: cacheKey)
+        return badges
+    }
+
+    public func fetchChangelogs(appID: Int) async throws -> [SteamChangelogEntry] {
+        let cacheKey = "changelogs_\(appID)"
+        if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamChangelogEntry].self, expiration: 1800) {
+            return cached
+        }
+
+        let url = baseURL.appendingPathComponent("app/\(appID)/changelogs/")
+        let data = try await networking.fetchData(url: url)
+        let html = String(data: data, encoding: .utf8) ?? ""
+        let changelogs = try parser.parseChangelogs(html: html)
+        await CacheService.shared.save(changelogs, for: cacheKey)
+        return changelogs
     }
 }

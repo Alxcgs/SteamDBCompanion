@@ -6,6 +6,7 @@ public class HomeViewModel: ObservableObject {
     
     @Published public var trendingApps: [SteamApp] = []
     @Published public var topSellers: [SteamApp] = []
+    @Published public var mostPlayed: [SteamApp] = []
     @Published public var isLoading: Bool = false
     @Published public var errorMessage: String?
     
@@ -22,11 +23,13 @@ public class HomeViewModel: ObservableObject {
         do {
             async let trending = dataSource.fetchTrending()
             async let top = dataSource.fetchTopSellers()
-            
-            let (trendingResult, topResult) = try await (trending, top)
+            async let mostPlayed = dataSource.fetchMostPlayed()
+
+            let (trendingResult, topResult, mostPlayedResult) = try await (trending, top, mostPlayed)
             
             self.trendingApps = trendingResult
             self.topSellers = topResult
+            self.mostPlayed = mostPlayedResult
         } catch {
             self.errorMessage = "Failed to load data: \(error.localizedDescription)"
         }
