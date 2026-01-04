@@ -152,6 +152,18 @@ public struct HomeView: View {
                                 }
                                 .padding(.horizontal)
                             }
+
+                            // Most Played Section
+                            VStack(alignment: .leading, spacing: 16) {
+                                SectionHeader(title: "Most Played", icon: "person.2.fill")
+
+                                LazyVStack(spacing: 12) {
+                                    ForEach(viewModel.mostPlayed) { app in
+                                        TopSellerRow(app: app)
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                     }
                     .padding(.bottom, 40)

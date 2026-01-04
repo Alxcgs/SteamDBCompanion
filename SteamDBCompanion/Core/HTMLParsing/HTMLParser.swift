@@ -14,31 +14,38 @@ public final class HTMLParser {
     public func parseTrending(html: String) throws -> [SteamApp] {
         do {
             let doc = try SwiftSoup.parse(html)
-            let rows = try doc.select(".table-products tbody tr")
-            
-            var apps: [SteamApp] = []
-            
-            for row in rows {
-                let nameElement = try row.select("td:nth-child(3) a").first()
-                let name = try nameElement?.text() ?? "Unknown"
-                
-                let idAttr = try row.attr("data-appid")
-                let id = Int(idAttr) ?? 0
-                
-                // Price parsing (simplified)
-                let priceText = try row.select("td:nth-child(4)").text()
-                let price = parsePrice(priceText)
-                
-                let app = SteamApp(
-                    id: id,
-                    name: name,
-                    type: .game,
-                    price: price
-                )
-                apps.append(app)
-            }
-            
-            return apps
+            let rows = try doc.select(".table-products tbody tr, table.table-products tbody tr")
+            return parseAppRows(rows: rows)
+        } catch {
+            throw HTMLParsingError.parsingFailed(error)
+        }
+    }
+
+    public func parseSearchResults(html: String) throws -> [SteamApp] {
+        do {
+            let doc = try SwiftSoup.parse(html)
+            let rows = try doc.select("table.table-apps tbody tr, table.table-products tbody tr, table.table-app-search tbody tr")
+            return parseAppRows(rows: rows)
+        } catch {
+            throw HTMLParsingError.parsingFailed(error)
+        }
+    }
+
+    public func parseTopSellers(html: String) throws -> [SteamApp] {
+        do {
+            let doc = try SwiftSoup.parse(html)
+            let rows = try doc.select("table.table-top-sellers tbody tr, table.table-products tbody tr")
+            return parseAppRows(rows: rows)
+        } catch {
+            throw HTMLParsingError.parsingFailed(error)
+        }
+    }
+
+    public func parseMostPlayed(html: String) throws -> [SteamApp] {
+        do {
+            let doc = try SwiftSoup.parse(html)
+            let rows = try doc.select("table.table-mostplayed tbody tr, table.table-graph tbody tr, table.table-products tbody tr")
+            return parseAppRows(rows: rows, includePlayers: true)
         } catch {
             throw HTMLParsingError.parsingFailed(error)
         }
@@ -58,15 +65,24 @@ public final class HTMLParser {
             // Extract price
             let priceText = try doc.select(".price-line .price").first()?.text() ?? ""
             let price = parsePrice(priceText)
+
+            let developer = extractDetailValue(from: doc, labels: ["developer", "developers"])
+            let publisher = extractDetailValue(from: doc, labels: ["publisher", "publishers"])
+            let releaseDateText = extractDetailValue(from: doc, labels: ["release date", "release"])
+            let releaseDate = parseDate(releaseDateText)
+
+            let platformsText = extractDetailValue(from: doc, labels: ["platforms", "platform"])
+            let platforms = parsePlatforms(platformsText)
             
             return SteamApp(
                 id: appID,
                 name: name,
                 type: .game,
                 price: price,
-                platforms: [.windows], // Placeholder
-                developer: "Unknown",
-                publisher: "Unknown",
+                platforms: platforms,
+                developer: developer,
+                publisher: publisher,
+                releaseDate: releaseDate,
                 playerStats: PlayerStats(currentPlayers: currentPlayers, peak24h: 0, allTimePeak: 0)
             )
         } catch {
@@ -233,5 +249,93 @@ public final class HTMLParser {
             discountPercent: 0,
             initial: value
         )
+    }
+
+    private func parseAppRows(rows: Elements, includePlayers: Bool = false) -> [SteamApp] {
+        var apps: [SteamApp] = []
+
+        for row in rows {
+            let id = parseAppID(from: row)
+            let name = (try? row.select("td:nth-child(3) a, td:nth-child(2) a, td a[href*=/app/]").first()?.text()) ?? "Unknown"
+            let priceText = (try? row.select("td.price, td:nth-child(4)").text()) ?? ""
+            let price = parsePrice(priceText)
+
+            var playerStats: PlayerStats?
+            if includePlayers {
+                let playersText = (try? row.select("td:nth-child(4), td:nth-child(5)").text()) ?? ""
+                let players = Int(playersText.replacingOccurrences(of: ",", with: "").filter { "0123456789".contains($0) }) ?? 0
+                playerStats = PlayerStats(currentPlayers: players, peak24h: 0, allTimePeak: 0)
+            }
+
+            let app = SteamApp(
+                id: id,
+                name: name,
+                type: .game,
+                price: price,
+                playerStats: playerStats
+            )
+            apps.append(app)
+        }
+
+        return apps
+    }
+
+    private func parseAppID(from row: Element) -> Int {
+        if let idAttr = try? row.attr("data-appid"), !idAttr.isEmpty, let id = Int(idAttr) {
+            return id
+        }
+
+        if let href = try? row.select("a[href*=/app/]").first()?.attr("href") {
+            let regex = try? NSRegularExpression(pattern: "/app/(\\d+)/")
+            if let match = regex?.firstMatch(in: href, range: NSRange(href.startIndex..., in: href)),
+               let range = Range(match.range(at: 1), in: href),
+               let id = Int(href[range]) {
+                return id
+            }
+        }
+
+        return 0
+    }
+
+    private func extractDetailValue(from doc: Document, labels: [String]) -> String? {
+        guard let table = try? doc.select("table.table-app-details, table.table-app, table.table-app-info, table.table").first() else {
+            return nil
+        }
+
+        let rows = (try? table.select("tr")) ?? Elements()
+        for row in rows {
+            let headerText = (try? row.select("th, td:nth-child(1)").text()) ?? ""
+            let normalizedHeader = headerText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            if labels.contains(where: { normalizedHeader.contains($0) }) {
+                let value = (try? row.select("td:nth-child(2)").text()) ?? ""
+                return value.isEmpty ? nil : value
+            }
+        }
+
+        return nil
+    }
+
+    private func parsePlatforms(_ text: String?) -> [Platform] {
+        guard let text else { return [] }
+        let lower = text.lowercased()
+        var platforms: [Platform] = []
+        if lower.contains("windows") { platforms.append(.windows) }
+        if lower.contains("mac") { platforms.append(.mac) }
+        if lower.contains("linux") { platforms.append(.linux) }
+        return platforms
+    }
+
+    private func parseDate(_ text: String?) -> Date? {
+        guard let text, !text.isEmpty else { return nil }
+        let formats = ["yyyy-MM-dd", "MMM d, yyyy", "MMMM d, yyyy"]
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        for format in formats {
+            formatter.dateFormat = format
+            if let date = formatter.date(from: text) {
+                return date
+            }
+        }
+        return nil
     }
 }

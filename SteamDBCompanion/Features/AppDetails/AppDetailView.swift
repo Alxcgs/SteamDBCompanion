@@ -102,6 +102,29 @@ public struct AppDetailView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
+
+                            if app.developer != nil || app.publisher != nil || app.releaseDate != nil {
+                                GlassCard {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Details")
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+
+                                        if let developer = app.developer, !developer.isEmpty {
+                                            DetailRow(label: "Developer", value: developer)
+                                        }
+
+                                        if let publisher = app.publisher, !publisher.isEmpty {
+                                            DetailRow(label: "Publisher", value: publisher)
+                                        }
+
+                                        if let date = app.releaseDate {
+                                            DetailRow(label: "Release Date", value: date.formatted(date: .abbreviated, time: .omitted))
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            }
                             
                             // Price History Chart
                             if let history = viewModel.priceHistory, !history.points.isEmpty {
@@ -217,6 +240,25 @@ struct StatCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .top) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 90, alignment: .leading)
+
+            Text(value)
+                .font(.subheadline)
+                .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+            Spacer()
         }
     }
 }
