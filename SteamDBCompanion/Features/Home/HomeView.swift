@@ -48,6 +48,16 @@ public struct HomeView: View {
                             }
                             .buttonStyle(.plain)
 
+                            NavigationLink(destination: BrowseView(dataSource: dataSource)) {
+                                Image(systemName: "list.bullet.rectangle")
+                                    .font(.title2)
+                                    .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.1))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+
                             NavigationLink(destination: AppLookupView(dataSource: dataSource)) {
                                 Image(systemName: "rectangle.stack.fill")
                                     .font(.title2)
