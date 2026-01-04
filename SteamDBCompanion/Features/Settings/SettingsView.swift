@@ -52,6 +52,33 @@ public struct SettingsView: View {
                         }
                     }
                     .padding(.horizontal)
+
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "globe")
+                                    .foregroundStyle(LiquidGlassTheme.Colors.neonPrimary)
+                                Text("SteamDB Website")
+                                    .font(.headline)
+                                    .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                                Spacer()
+                            }
+
+                            NavigationLink {
+                                SteamDBWebView()
+                            } label: {
+                                HStack {
+                                    Text("Open full SteamDB site")
+                                        .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
                     
                     // About
                     GlassCard {

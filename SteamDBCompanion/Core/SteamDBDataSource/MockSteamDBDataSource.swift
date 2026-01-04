@@ -96,4 +96,36 @@ public final class MockSteamDBDataSource: SteamDBDataSource {
         
         return PlayerTrend(appID: appID, points: points)
     }
+
+    public func fetchPackages(appID: Int) async throws -> [SteamPackage] {
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        return [
+            SteamPackage(id: 12345, name: "Standard Edition", price: PriceInfo(current: 29.99, currency: "USD", discountPercent: 0, initial: 29.99), type: "Game"),
+            SteamPackage(id: 23456, name: "Deluxe Bundle", price: PriceInfo(current: 49.99, currency: "USD", discountPercent: 10, initial: 59.99), type: "Bundle")
+        ]
+    }
+
+    public func fetchDepots(appID: Int) async throws -> [SteamDepot] {
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        return [
+            SteamDepot(id: 123456, name: "Windows Content", size: "12.3 GB", manifest: "7890123456789012345"),
+            SteamDepot(id: 234567, name: "Mac Content", size: "11.8 GB", manifest: "8901234567890123456")
+        ]
+    }
+
+    public func fetchBadges(appID: Int) async throws -> [SteamBadge] {
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        return [
+            SteamBadge(id: 1, name: "Collector Badge", level: "Level 1", rarity: "Common"),
+            SteamBadge(id: 2, name: "Foil Badge", level: "Level 1", rarity: "Rare")
+        ]
+    }
+
+    public func fetchChangelogs(appID: Int) async throws -> [SteamChangelogEntry] {
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        return [
+            SteamChangelogEntry(id: "build-1001", buildID: "1001", date: "2024-04-01", summary: "Added new maps and balance tweaks."),
+            SteamChangelogEntry(id: "build-1002", buildID: "1002", date: "2024-05-15", summary: "Improved matchmaking performance.")
+        ]
+    }
 }

@@ -47,6 +47,16 @@ public struct HomeView: View {
                                     .clipShape(Circle())
                             }
                             .buttonStyle(.plain)
+
+                            NavigationLink(destination: SteamDBWebView()) {
+                                Image(systemName: "globe")
+                                    .font(.title2)
+                                    .foregroundStyle(LiquidGlassTheme.Colors.neonPrimary)
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.1))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
                             
                             NavigationLink(destination: SearchView(dataSource: dataSource)) {
                                 HStack {
