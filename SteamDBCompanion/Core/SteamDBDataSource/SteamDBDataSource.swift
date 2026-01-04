@@ -21,4 +21,16 @@ public protocol SteamDBDataSource {
     
     /// Fetches player count trend for a specific app.
     func fetchPlayerTrend(appID: Int) async throws -> PlayerTrend
+
+    /// Fetches package data for a specific app.
+    func fetchPackages(appID: Int) async throws -> [SteamPackage]
+
+    /// Fetches depot data for a specific app.
+    func fetchDepots(appID: Int) async throws -> [SteamDepot]
+
+    /// Fetches badge data for a specific app.
+    func fetchBadges(appID: Int) async throws -> [SteamBadge]
+
+    /// Fetches changelog entries for a specific app.
+    func fetchChangelogs(appID: Int) async throws -> [SteamChangelogEntry]
 }

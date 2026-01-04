@@ -102,9 +102,32 @@ public struct AppDetailView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
+
+                            if app.developer != nil || app.publisher != nil || app.releaseDate != nil {
+                                GlassCard {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Details")
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+
+                                        if let developer = app.developer, !developer.isEmpty {
+                                            DetailRow(label: "Developer", value: developer)
+                                        }
+
+                                        if let publisher = app.publisher, !publisher.isEmpty {
+                                            DetailRow(label: "Publisher", value: publisher)
+                                        }
+
+                                        if let date = app.releaseDate {
+                                            DetailRow(label: "Release Date", value: date.formatted(date: .abbreviated, time: .omitted))
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            }
                             
                             // Price History Chart
-                            if let history = viewModel.priceHistory {
+                            if let history = viewModel.priceHistory, !history.points.isEmpty {
                                 GlassCard {
                                     PriceHistoryChartView(history: history)
                                         .frame(maxWidth: .infinity)
@@ -117,6 +140,46 @@ public struct AppDetailView: View {
                                     PlayerTrendChartView(trend: trend)
                                         .frame(maxWidth: .infinity)
                                 }
+                            }
+
+                            // Explore Sections
+                            GlassCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Explore")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+
+                                    NavigationLink {
+                                        ChartsView(priceHistory: viewModel.priceHistory, playerTrend: viewModel.playerTrend)
+                                    } label: {
+                                        SectionRow(title: "Charts", subtitle: "Price history & player trends", icon: "chart.line.uptrend.xyaxis")
+                                    }
+
+                                    NavigationLink {
+                                        PackagesView(packages: viewModel.packages)
+                                    } label: {
+                                        SectionRow(title: "Packages", subtitle: "\(viewModel.packages.count) packages", icon: "shippingbox.fill")
+                                    }
+
+                                    NavigationLink {
+                                        DepotsView(depots: viewModel.depots)
+                                    } label: {
+                                        SectionRow(title: "Depots", subtitle: "\(viewModel.depots.count) depots", icon: "tray.full.fill")
+                                    }
+
+                                    NavigationLink {
+                                        BadgesView(badges: viewModel.badges)
+                                    } label: {
+                                        SectionRow(title: "Badges", subtitle: "\(viewModel.badges.count) badges", icon: "seal.fill")
+                                    }
+
+                                    NavigationLink {
+                                        ChangelogView(entries: viewModel.changelogs)
+                                    } label: {
+                                        SectionRow(title: "Changelogs", subtitle: "\(viewModel.changelogs.count) entries", icon: "clock.arrow.circlepath")
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             
                             // Actions
@@ -178,6 +241,53 @@ struct StatCard: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .top) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 90, alignment: .leading)
+
+            Text(value)
+                .font(.subheadline)
+                .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+            Spacer()
+        }
+    }
+}
+
+struct SectionRow: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(LiquidGlassTheme.Colors.neonPrimary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 6)
     }
 }
 
