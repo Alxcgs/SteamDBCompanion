@@ -48,6 +48,16 @@ public struct HomeView: View {
                             }
                             .buttonStyle(.plain)
 
+                            NavigationLink(destination: AppLookupView(dataSource: dataSource)) {
+                                Image(systemName: "rectangle.stack.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(LiquidGlassTheme.Colors.neonPrimary)
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.1))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+
                             NavigationLink(destination: SteamDBWebView()) {
                                 Image(systemName: "globe")
                                     .font(.title2)
