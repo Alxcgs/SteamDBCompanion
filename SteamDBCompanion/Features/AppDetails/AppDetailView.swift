@@ -105,9 +105,9 @@ public struct AppDetailView: View {
                             
                             // Stats Grid
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                                StatCard(title: "Current Players", value: "\(app.playerStats?.currentPlayers ?? 0)", icon: "person.2.fill")
-                                StatCard(title: "24h Peak", value: "\(app.playerStats?.peak24h ?? 0)", icon: "chart.bar.fill")
-                                StatCard(title: "All-Time Peak", value: "\(app.playerStats?.allTimePeak ?? 0)", icon: "trophy.fill")
+                                StatCard(title: "Current Players", value: app.playerStats.map { Self.formatStatValue($0.currentPlayers) } ?? "—", icon: "person.2.fill")
+                                StatCard(title: "24h Peak", value: app.playerStats.map { Self.formatStatValue($0.peak24h) } ?? "—", icon: "chart.bar.fill")
+                                StatCard(title: "All-Time Peak", value: app.playerStats.map { Self.formatStatValue($0.allTimePeak) } ?? "—", icon: "trophy.fill")
                                 StatCard(title: "App ID", value: "\(app.id)", icon: "number")
                             }
 
@@ -196,6 +196,15 @@ public struct AppDetailView: View {
         case .mac: return "apple.logo"
         case .linux: return "penguin" // SF Symbols doesn't have penguin, fallback
         }
+    }
+}
+
+private extension AppDetailView {
+    static func formatStatValue(_ value: Int) -> String {
+        guard value > 0 else { return "—" }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }
 

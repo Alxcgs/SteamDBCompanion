@@ -108,43 +108,13 @@ public struct SearchView: View {
 
 struct SearchResultRow: View {
     let app: SteamApp
+    private let rowImageSize = CGSize(width: 112, height: 42)
     
     var body: some View {
         GlassCard(padding: 12) {
             HStack {
-                if let imageURL = app.headerImageURL {
-                    AsyncImage(url: imageURL) { phase in
-                        switch phase {
-                        case .empty:
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.black.opacity(0.3))
-                        case let .success(image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        case .failure:
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.black.opacity(0.3))
-                                .overlay(
-                                    Image(systemName: "gamecontroller")
-                                        .foregroundStyle(.white.opacity(0.5))
-                                )
-                        @unknown default:
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.black.opacity(0.3))
-                        }
-                    }
-                    .frame(width: 50, height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.black.opacity(0.3))
-                        .frame(width: 50, height: 50)
-                        .overlay(
-                            Image(systemName: "gamecontroller")
-                                .foregroundStyle(.white.opacity(0.5))
-                        )
-                }
+                SearchCapsuleImage(imageURL: app.headerImageURL)
+                    .frame(width: rowImageSize.width, height: rowImageSize.height)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(app.name)
@@ -173,6 +143,39 @@ struct SearchResultRow: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+private struct SearchCapsuleImage: View {
+    let imageURL: URL?
+
+    var body: some View {
+        AsyncImage(url: imageURL) { phase in
+            switch phase {
+            case .empty:
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.3))
+            case let .success(image):
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.black.opacity(0.3))
+                    image
+                        .resizable()
+                        .scaledToFit()
+                }
+            case .failure:
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.3))
+                    .overlay(
+                        Image(systemName: "gamecontroller.fill")
+                            .foregroundStyle(.white.opacity(0.2))
+                    )
+            @unknown default:
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.3))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 

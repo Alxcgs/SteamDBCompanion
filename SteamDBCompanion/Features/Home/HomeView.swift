@@ -129,6 +129,13 @@ public struct HomeView: View {
                                         .padding(.horizontal)
                                     }
                                 }
+
+                                if viewModel.trendingApps.isEmpty {
+                                    Text("No trending data right now.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal)
+                                }
                             }
                             
                             // Top Sellers Section
@@ -141,6 +148,13 @@ public struct HomeView: View {
                                     }
                                 }
                                 .padding(.horizontal)
+
+                                if viewModel.topSellers.isEmpty {
+                                    Text("No top-seller data right now.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal)
+                                }
                             }
                         }
                     }
@@ -175,46 +189,14 @@ struct SectionHeader: View {
 
 struct TrendingAppCard: View {
     let app: SteamApp
+    private let capsuleAspectRatio: CGFloat = 184.0 / 69.0
     
     var body: some View {
         NavigationLink(value: app) {
             GlassCard(padding: 0) {
                 VStack(alignment: .leading) {
-                    if let imageURL = app.headerImageURL {
-                        AsyncImage(url: imageURL) { phase in
-                            switch phase {
-                            case .empty:
-                                Rectangle()
-                                    .fill(Color.black.opacity(0.3))
-                            case let .success(image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            case .failure:
-                                Rectangle()
-                                    .fill(Color.black.opacity(0.3))
-                                    .overlay(
-                                        Image(systemName: "gamecontroller.fill")
-                                            .font(.largeTitle)
-                                            .foregroundStyle(.white.opacity(0.2))
-                                    )
-                            @unknown default:
-                                Rectangle()
-                                    .fill(Color.black.opacity(0.3))
-                            }
-                        }
-                        .frame(height: 120)
-                        .clipped()
-                    } else {
-                        Rectangle()
-                            .fill(Color.black.opacity(0.3))
-                            .frame(height: 120)
-                            .overlay(
-                                Image(systemName: "gamecontroller.fill")
-                                    .font(.largeTitle)
-                                    .foregroundStyle(.white.opacity(0.2))
-                            )
-                    }
+                    SteamCapsuleImage(imageURL: app.headerImageURL, cornerRadius: 0)
+                        .aspectRatio(capsuleAspectRatio, contentMode: .fit)
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(app.name)
@@ -244,61 +226,31 @@ struct TrendingAppCard: View {
 
 struct TopSellerRow: View {
     let app: SteamApp
+    private let rowImageSize = CGSize(width: 112, height: 42)
     
     var body: some View {
         NavigationLink(value: app) {
-        GlassCard(padding: 12) {
-            HStack {
-                if let imageURL = app.headerImageURL {
-                    AsyncImage(url: imageURL) { phase in
-                        switch phase {
-                        case .empty:
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.black.opacity(0.3))
-                        case let .success(image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        case .failure:
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.black.opacity(0.3))
-                                .overlay(
-                                    Image(systemName: "gamecontroller")
-                                        .foregroundStyle(.white.opacity(0.5))
-                                )
-                        @unknown default:
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.black.opacity(0.3))
-                        }
-                    }
-                    .frame(width: 60, height: 60)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.black.opacity(0.3))
-                        .frame(width: 60, height: 60)
-                        .overlay(
-                            Image(systemName: "gamecontroller")
-                                .foregroundStyle(.white.opacity(0.5))
-                        )
-                }
-                    
+            GlassCard(padding: 12) {
+                HStack {
+                    SteamCapsuleImage(imageURL: app.headerImageURL, cornerRadius: 8)
+                        .frame(width: rowImageSize.width, height: rowImageSize.height)
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text(app.name)
                             .font(.headline)
                             .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
-                        
+
                         HStack {
                             if let players = app.playerStats {
-                                Label("\(players.currentPlayers)", systemImage: "person.2.fill")
+                                Label(formatNumber(players.currentPlayers), systemImage: "person.2.fill")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     if let price = app.price {
                         Text(price.formatted)
                             .font(.headline)
@@ -314,6 +266,47 @@ struct TopSellerRow: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private func formatNumber(_ value: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+}
+
+private struct SteamCapsuleImage: View {
+    let imageURL: URL?
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        AsyncImage(url: imageURL) { phase in
+            switch phase {
+            case .empty:
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color.black.opacity(0.3))
+            case let .success(image):
+                ZStack {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .fill(Color.black.opacity(0.3))
+                    image
+                        .resizable()
+                        .scaledToFit()
+                }
+            case .failure:
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color.black.opacity(0.3))
+                    .overlay(
+                        Image(systemName: "gamecontroller.fill")
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.2))
+                    )
+            @unknown default:
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color.black.opacity(0.3))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     }
 }
 

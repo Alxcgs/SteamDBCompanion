@@ -25,6 +25,8 @@ public class SearchViewModel: ObservableObject {
         
         guard !query.isEmpty else {
             results = []
+            errorMessage = nil
+            isSearching = false
             return
         }
         

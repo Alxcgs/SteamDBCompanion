@@ -24,7 +24,7 @@ public struct PriceHistoryChartView: View {
                         Text("Lowest")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        Text("$\(String(format: "%.2f", lowest.price))")
+                        Text(formatPrice(lowest.price))
                             .font(.caption.bold())
                             .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
                     }
@@ -100,6 +100,13 @@ public struct PriceHistoryChartView: View {
                 .frame(height: 200)
             }
         }
+    }
+
+    private func formatPrice(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = history.currency
+        return formatter.string(from: NSNumber(value: value)) ?? "\(history.currency) \(String(format: "%.2f", value))"
     }
 }
 
