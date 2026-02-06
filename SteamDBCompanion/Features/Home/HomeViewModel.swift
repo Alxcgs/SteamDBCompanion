@@ -21,12 +21,10 @@ public class HomeViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            async let trending = dataSource.fetchTrending()
-            async let top = dataSource.fetchTopSellers()
-            
-            let (trendingResult, topResult) = try await (trending, top)
-            
+            let trendingResult = try await dataSource.fetchTrending()
             self.trendingApps = trendingResult
+
+            let topResult = try await dataSource.fetchTopSellers()
             self.topSellers = topResult
         } catch {
             self.errorMessage = "Failed to load data: \(error.localizedDescription)"

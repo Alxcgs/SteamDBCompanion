@@ -35,23 +35,34 @@ struct SteamDBWebView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
-        webView.customUserAgent = "SteamDBCompanion-iOS-WebFallback"
         state.webView = webView
-        webView.load(URLRequest(url: url))
+        context.coordinator.loadIfNeeded(webView, targetURL: url)
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        if webView.url?.absoluteString != url.absoluteString {
-            webView.load(URLRequest(url: url))
-        }
+        context.coordinator.loadIfNeeded(webView, targetURL: url)
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         private let state: WebFallbackState
+        private var lastLoadedURL: URL?
 
         init(state: WebFallbackState) {
             self.state = state
+        }
+
+        func loadIfNeeded(_ webView: WKWebView, targetURL: URL) {
+            if lastLoadedURL == targetURL {
+                return
+            }
+            lastLoadedURL = targetURL
+            var request = URLRequest(url: targetURL)
+            request.setValue(
+                "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+                forHTTPHeaderField: "User-Agent"
+            )
+            webView.load(request)
         }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {

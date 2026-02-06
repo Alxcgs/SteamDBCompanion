@@ -6,6 +6,7 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     private let networking: NetworkingService
     private let parser: HTMLParser
     private let baseURL = URL(string: "https://steamdb.info")!
+    private let storeFeaturedURL = URL(string: "https://store.steampowered.com/api/featuredcategories?cc=us&l=en")!
     
     public init(
         gateway: SteamDBGatewayClient = HTTPSteamDBGatewayClient(),
@@ -54,9 +55,9 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
             let result = try await repository.fetch(cacheKey: "home_payload", expiration: 900) {
                 try await self.gateway.fetchHome()
             }
-            return result.value.trending.map(\.asSteamApp)
+            return uniqueApps(result.value.trending.map(\.asSteamApp))
         } catch {
-            return try await fallbackTrending()
+            return uniqueApps(await fallbackTrending())
         }
     }
     
@@ -65,9 +66,9 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
             let result = try await repository.fetch(cacheKey: "home_payload", expiration: 900) {
                 try await self.gateway.fetchHome()
             }
-            return result.value.topSellers.map(\.asSteamApp)
+            return uniqueApps(result.value.topSellers.map(\.asSteamApp))
         } catch {
-            return try await fallbackTrending()
+            return uniqueApps(await fallbackTopSellers())
         }
     }
     
@@ -87,9 +88,13 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
             let result = try await repository.fetch(cacheKey: "collection_daily_active_users", expiration: 900) {
                 try await self.gateway.fetchCollection(kind: .dailyActiveUsers)
             }
-            return result.value.items.map(\.asSteamApp)
+            return uniqueApps(result.value.items.map(\.asSteamApp))
         } catch {
-            return try await fallbackTrending()
+            let fallback = await fallbackTopSellers()
+            if !fallback.isEmpty {
+                return uniqueApps(fallback)
+            }
+            return uniqueApps(await fallbackTrending())
         }
     }
     
@@ -142,16 +147,136 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
         return app
     }
 
-    private func fallbackTrending() async throws -> [SteamApp] {
+    private func fallbackTrending() async -> [SteamApp] {
         let cacheKey = "legacy_trending"
         if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamApp].self, expiration: 3600) {
             return cached
         }
 
-        let data = try await networking.fetchData(url: baseURL)
-        let html = String(data: data, encoding: .utf8) ?? ""
-        let apps = try parser.parseTrending(html: html)
-        await CacheService.shared.save(apps, for: cacheKey)
-        return apps
+        do {
+            let data = try await networking.fetchData(url: baseURL)
+            let html = String(data: data, encoding: .utf8) ?? ""
+            let apps = try parser.parseTrending(html: html)
+            if !apps.isEmpty {
+                await CacheService.shared.save(apps, for: cacheKey)
+                return apps
+            }
+        } catch {
+            // Continue to stale/store fallbacks.
+        }
+
+        if let stale = await CacheService.shared.loadAllowExpired(key: cacheKey, type: [SteamApp].self, expiration: 3600) {
+            return stale.value
+        }
+
+        let storeFallback = await fetchStoreTrending()
+        if !storeFallback.isEmpty {
+            await CacheService.shared.save(storeFallback, for: cacheKey)
+        }
+        return storeFallback
     }
+
+    private func fallbackTopSellers() async -> [SteamApp] {
+        let cacheKey = "legacy_top_sellers"
+        if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamApp].self, expiration: 3600) {
+            return cached
+        }
+
+        let storeFallback = await fetchStoreTopSellers()
+        if !storeFallback.isEmpty {
+            await CacheService.shared.save(storeFallback, for: cacheKey)
+            return storeFallback
+        }
+
+        if let stale = await CacheService.shared.loadAllowExpired(key: cacheKey, type: [SteamApp].self, expiration: 3600) {
+            return stale.value
+        }
+
+        return await fallbackTrending()
+    }
+
+    private func fetchStoreTrending() async -> [SteamApp] {
+        do {
+            let payload = try await repository.fetch(cacheKey: "steam_store_featured", expiration: 900) {
+                try await self.networking.fetch(url: self.storeFeaturedURL, type: StoreFeaturedPayload.self)
+            }
+
+            let specials = (payload.value.specials?.items ?? []).map(asSteamApp)
+            if !specials.isEmpty {
+                return specials
+            }
+
+            return (payload.value.featuredWin?.items ?? []).map(asSteamApp)
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchStoreTopSellers() async -> [SteamApp] {
+        do {
+            let payload = try await repository.fetch(cacheKey: "steam_store_featured", expiration: 900) {
+                try await self.networking.fetch(url: self.storeFeaturedURL, type: StoreFeaturedPayload.self)
+            }
+            return (payload.value.topSellers?.items ?? []).map(asSteamApp)
+        } catch {
+            return []
+        }
+    }
+
+    private func asSteamApp(_ item: StoreFeaturedItem) -> SteamApp {
+        var platforms: [Platform] = []
+        if item.windowsAvailable == true { platforms.append(.windows) }
+        if item.macAvailable == true { platforms.append(.mac) }
+        if item.linuxAvailable == true { platforms.append(.linux) }
+        if platforms.isEmpty { platforms = [.windows] }
+
+        let price: PriceInfo?
+        if let finalPrice = item.finalPrice, finalPrice > 0 {
+            let initialPrice = item.originalPrice ?? finalPrice
+            price = PriceInfo(
+                current: Double(finalPrice) / 100.0,
+                currency: "USD",
+                discountPercent: item.discountPercent ?? 0,
+                initial: Double(initialPrice) / 100.0
+            )
+        } else {
+            price = nil
+        }
+
+        return SteamApp(
+            id: item.id,
+            name: item.name,
+            type: .game,
+            price: price,
+            platforms: platforms
+        )
+    }
+
+    private func uniqueApps(_ apps: [SteamApp]) -> [SteamApp] {
+        var seenIDs = Set<Int>()
+        return apps.filter { app in
+            seenIDs.insert(app.id).inserted
+        }
+    }
+}
+
+private struct StoreFeaturedPayload: Codable {
+    let specials: StoreFeaturedSection?
+    let topSellers: StoreFeaturedSection?
+    let featuredWin: StoreFeaturedSection?
+}
+
+private struct StoreFeaturedSection: Codable {
+    let items: [StoreFeaturedItem]
+}
+
+private struct StoreFeaturedItem: Codable {
+    let id: Int
+    let name: String
+    let discountPercent: Int?
+    let originalPrice: Int?
+    let finalPrice: Int?
+    let windowsAvailable: Bool?
+    let macAvailable: Bool?
+    let linuxAvailable: Bool?
 }

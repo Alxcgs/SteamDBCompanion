@@ -13,6 +13,7 @@ public actor HTTPSteamDBGatewayClient: SteamDBGatewayClient {
     }
 
     private let baseURL: URL
+    private let isConfigured: Bool
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
@@ -23,12 +24,16 @@ public actor HTTPSteamDBGatewayClient: SteamDBGatewayClient {
     ) {
         if let baseURL {
             self.baseURL = baseURL
+            self.isConfigured = true
         } else if let configured = ProcessInfo.processInfo.environment["STEAMDB_GATEWAY_URL"], let configuredURL = URL(string: configured) {
             self.baseURL = configuredURL
+            self.isConfigured = true
         } else if let saved = UserDefaults.standard.string(forKey: "SteamDBGatewayURL"), let savedURL = URL(string: saved) {
             self.baseURL = savedURL
+            self.isConfigured = true
         } else {
-            self.baseURL = URL(string: "http://127.0.0.1:8787")!
+            self.baseURL = URL(string: "https://invalid.local")!
+            self.isConfigured = false
         }
 
         self.session = session
@@ -93,6 +98,10 @@ public actor HTTPSteamDBGatewayClient: SteamDBGatewayClient {
         queryItems: [URLQueryItem] = [],
         body: Data? = nil
     ) async throws -> T {
+        guard isConfigured else {
+            throw GatewayClientError.invalidBaseURL
+        }
+
         guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
             throw GatewayClientError.invalidBaseURL
         }
