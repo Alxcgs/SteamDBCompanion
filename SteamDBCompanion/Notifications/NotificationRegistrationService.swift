@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import UIKit
+import Combine
 
 @MainActor
 public class NotificationRegistrationService: ObservableObject {
