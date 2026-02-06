@@ -3,7 +3,11 @@ import SwiftUI
 public struct AppDetailView: View {
     
     @EnvironmentObject var wishlistManager: WishlistManager
+    @Environment(\.openURL) private var openURL
     @StateObject private var viewModel: AppDetailViewModel
+    @State private var showStoreDestinationDialog = false
+    @State private var openStoreInApp = false
+    @State private var storeURL: URL?
     
     public init(appID: Int, dataSource: SteamDBDataSource) {
         _viewModel = StateObject(wrappedValue: AppDetailViewModel(appID: appID, dataSource: dataSource))
@@ -149,18 +153,46 @@ public struct AppDetailView: View {
                             
                             // Price History Chart
                             if let history = viewModel.priceHistory {
-                                GlassCard {
-                                    PriceHistoryChartView(history: history)
-                                        .frame(maxWidth: .infinity)
+                                NavigationLink {
+                                    PriceHistoryDetailView(history: history, appName: app.name)
+                                } label: {
+                                    GlassCard {
+                                        PriceHistoryChartView(history: history)
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .overlay(alignment: .topTrailing) {
+                                        Image(systemName: "arrow.up.right")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(.secondary)
+                                            .padding(8)
+                                            .background(Color.black.opacity(0.12))
+                                            .clipShape(Circle())
+                                            .padding(12)
+                                    }
                                 }
+                                .buttonStyle(.plain)
                             }
                             
                             // Player Trend Chart
                             if let trend = viewModel.playerTrend, !trend.points.isEmpty {
-                                GlassCard {
-                                    PlayerTrendChartView(trend: trend)
-                                        .frame(maxWidth: .infinity)
+                                NavigationLink {
+                                    PlayerTrendDetailView(trend: trend, appName: app.name)
+                                } label: {
+                                    GlassCard {
+                                        PlayerTrendChartView(trend: trend)
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .overlay(alignment: .topTrailing) {
+                                        Image(systemName: "arrow.up.right")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(.secondary)
+                                            .padding(8)
+                                            .background(Color.black.opacity(0.12))
+                                            .clipShape(Circle())
+                                            .padding(12)
+                                    }
                                 }
+                                .buttonStyle(.plain)
                             }
                             
                             // Actions
@@ -174,7 +206,8 @@ public struct AppDetailView: View {
                                 }
                                 
                                 GlassButton("Store", icon: "cart", style: .primary) {
-                                    // Open store
+                                    storeURL = URL(string: "https://store.steampowered.com/app/\(app.id)/")
+                                    showStoreDestinationDialog = true
                                 }
                             }
                         }
@@ -185,6 +218,29 @@ public struct AppDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .background(
+            NavigationLink(isActive: $openStoreInApp) {
+                if let storeURL {
+                    WebFallbackShellView(url: storeURL, title: "Steam Store")
+                }
+            } label: {
+                EmptyView()
+            }
+            .hidden()
+        )
+        .confirmationDialog("Open store page", isPresented: $showStoreDestinationDialog, titleVisibility: .visible) {
+            Button("In app browser") {
+                guard storeURL != nil else { return }
+                openStoreInApp = true
+            }
+            Button("External browser") {
+                guard let storeURL else { return }
+                openURL(storeURL)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Choose where to open the Steam store page.")
+        }
         .task {
             await viewModel.loadDetails()
         }

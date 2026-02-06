@@ -1,14 +1,15 @@
 import Foundation
 
 public final class RealSteamDBDataSource: SteamDBDataSource {
-    private let cacheSchemaVersion = "v4"
+    private let cacheSchemaVersion = "v5"
     private let gateway: SteamDBGatewayClient
     private let repository: SteamDBRepository
     private let networking: NetworkingService
     private let parser: HTMLParser
     private let baseURL = URL(string: "https://steamdb.info")!
-    private let storeFeaturedURL = URL(string: "https://store.steampowered.com/api/featuredcategories/?cc=us&l=en")!
+    private let storeFeaturedBaseURL = URL(string: "https://store.steampowered.com/api/featuredcategories/")!
     private let storeSearchBaseURL = URL(string: "https://store.steampowered.com/api/storesearch/")!
+    private let storeSearchResultsBaseURL = URL(string: "https://store.steampowered.com/search/results/")!
     private let storeAppDetailsBaseURL = URL(string: "https://store.steampowered.com/api/appdetails")!
     private let steamCurrentPlayersBaseURL = URL(string: "https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/")!
     private let steamChartsBaseURL = URL(string: "https://steamcharts.com/app/")!
@@ -73,10 +74,23 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
             let result = try await repository.fetch(cacheKey: "home_payload_\(cacheSchemaVersion)", expiration: 900) {
                 try await self.gateway.fetchHome()
             }
-            return uniqueApps(result.value.topSellers.map(\.asSteamApp))
+            let gatewayTopSellers = result.value.topSellers.map(\.asSteamApp)
+            let extendedTopSellers = await fetchStoreTopSellersExtended(limit: 30)
+            let merged = uniqueApps(gatewayTopSellers + extendedTopSellers)
+            if !merged.isEmpty {
+                return Array(merged.prefix(30))
+            }
         } catch {
-            return uniqueApps(await fallbackTopSellers())
+            // Continue to fallbacks.
         }
+
+        let fallback = await fallbackTopSellers()
+        if !fallback.isEmpty {
+            return Array(uniqueApps(fallback).prefix(30))
+        }
+
+        let finalFallback = await fallbackTrending()
+        return Array(uniqueApps(finalFallback).prefix(30))
     }
     
     public func fetchMostPlayed() async throws -> [SteamApp] {
@@ -106,29 +120,33 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     }
     
     public func fetchPriceHistory(appID: Int) async throws -> PriceHistory {
-        do {
-            let result = try await repository.fetch(cacheKey: "app_charts_\(appID)_month_\(cacheSchemaVersion)", expiration: 900) {
-                try await self.gateway.fetchAppCharts(appID: appID, range: .month)
+        for range in [ChartRange.all, .year, .month] {
+            do {
+                let result = try await repository.fetch(cacheKey: "app_charts_\(appID)_\(range.rawValue)_\(cacheSchemaVersion)", expiration: 900) {
+                    try await self.gateway.fetchAppCharts(appID: appID, range: range)
+                }
+                if !result.value.priceHistory.isEmpty {
+                    return result.value.asPriceHistory
+                }
+            } catch {
+                continue
             }
-            if !result.value.priceHistory.isEmpty {
-                return result.value.asPriceHistory
-            }
-        } catch {
-            // Fall back below.
         }
         return await fallbackPriceHistory(appID: appID)
     }
     
     public func fetchPlayerTrend(appID: Int) async throws -> PlayerTrend {
-        do {
-            let result = try await repository.fetch(cacheKey: "app_charts_\(appID)_day_\(cacheSchemaVersion)", expiration: 900) {
-                try await self.gateway.fetchAppCharts(appID: appID, range: .day)
+        for range in [ChartRange.month, .week, .day] {
+            do {
+                let result = try await repository.fetch(cacheKey: "app_charts_\(appID)_\(range.rawValue)_\(cacheSchemaVersion)", expiration: 900) {
+                    try await self.gateway.fetchAppCharts(appID: appID, range: range)
+                }
+                if !result.value.playerTrend.isEmpty {
+                    return result.value.asPlayerTrend
+                }
+            } catch {
+                continue
             }
-            if !result.value.playerTrend.isEmpty {
-                return result.value.asPlayerTrend
-            }
-        } catch {
-            // Fall back below.
         }
         return await fallbackPlayerTrend(appID: appID)
     }
@@ -140,8 +158,8 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
         var components = URLComponents(url: storeSearchBaseURL, resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "term", value: trimmed),
-            URLQueryItem(name: "l", value: "en"),
-            URLQueryItem(name: "cc", value: "us")
+            URLQueryItem(name: "l", value: storeLanguageCode),
+            URLQueryItem(name: "cc", value: storeCountryCode)
         ]
 
         if let searchURL = components?.url {
@@ -175,8 +193,8 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
         var components = URLComponents(url: storeAppDetailsBaseURL, resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "appids", value: "\(appID)"),
-            URLQueryItem(name: "l", value: "en"),
-            URLQueryItem(name: "cc", value: "us")
+            URLQueryItem(name: "l", value: storeLanguageCode),
+            URLQueryItem(name: "cc", value: storeCountryCode)
         ]
 
         if let detailsURL = components?.url {
@@ -239,7 +257,7 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
         if let price = latestPrice {
             currency = price.currency
             let now = Date()
-            let shouldAppend = points.last.map { abs($0.price - price.current) > 0.0001 || now.timeIntervalSince($0.date) > 6 * 3600 } ?? true
+            let shouldAppend = points.last.map { abs($0.price - price.current) > 0.0001 || now.timeIntervalSince($0.date) > 1800 } ?? true
             if shouldAppend {
                 points.append(PriceHistoryPoint(date: now, price: price.current, discount: price.discountPercent))
             }
@@ -249,6 +267,18 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
                 let baselinePrice = price.initial > 0 ? price.initial : price.current
                 points.insert(PriceHistoryPoint(date: seedDate, price: baselinePrice, discount: 0), at: 0)
             }
+        }
+
+        if points.count == 2, let first = points.first, let last = points.last, first.date < last.date {
+            let days = max(2, Calendar.current.dateComponents([.day], from: first.date, to: last.date).day ?? 30)
+            let step = (last.price - first.price) / Double(days)
+            var interpolated: [PriceHistoryPoint] = []
+            for index in 0...days {
+                let date = Calendar.current.date(byAdding: .day, value: index, to: first.date) ?? first.date
+                let value = first.price + (Double(index) * step)
+                interpolated.append(PriceHistoryPoint(date: date, price: max(0, value), discount: last.discount))
+            }
+            points = interpolated
         }
 
         if points.count > 180 {
@@ -295,6 +325,12 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
             return cached
         }
 
+        let extendedTopSellers = await fetchStoreTopSellersExtended(limit: 30)
+        if !extendedTopSellers.isEmpty {
+            await CacheService.shared.save(extendedTopSellers, for: cacheKey)
+            return extendedTopSellers
+        }
+
         let storeFallback = await fetchStoreTopSellers()
         if !storeFallback.isEmpty {
             await CacheService.shared.save(storeFallback, for: cacheKey)
@@ -309,9 +345,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     }
 
     private func fetchStoreTrending() async -> [SteamApp] {
+        guard let featuredURL = buildStoreFeaturedURL() else { return [] }
         do {
-            let payload = try await repository.fetch(cacheKey: "steam_store_featured_\(cacheSchemaVersion)", expiration: 900) {
-                try await self.networking.fetch(url: self.storeFeaturedURL, type: StoreFeaturedCategoriesPayload.self)
+            let payload = try await repository.fetch(cacheKey: "steam_store_featured_\(storeCountryCode)_\(storeLanguageCode)_\(cacheSchemaVersion)", expiration: 900) {
+                try await self.networking.fetch(url: featuredURL, type: StoreFeaturedCategoriesPayload.self)
             }
 
             let specials = payload.value.specials.items.map(asSteamApp)
@@ -326,14 +363,127 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     }
 
     private func fetchStoreTopSellers() async -> [SteamApp] {
+        guard let featuredURL = buildStoreFeaturedURL() else { return [] }
         do {
-            let payload = try await repository.fetch(cacheKey: "steam_store_featured_\(cacheSchemaVersion)", expiration: 900) {
-                try await self.networking.fetch(url: self.storeFeaturedURL, type: StoreFeaturedCategoriesPayload.self)
+            let payload = try await repository.fetch(cacheKey: "steam_store_featured_\(storeCountryCode)_\(storeLanguageCode)_\(cacheSchemaVersion)", expiration: 900) {
+                try await self.networking.fetch(url: featuredURL, type: StoreFeaturedCategoriesPayload.self)
             }
             return payload.value.topSellers.items.map(asSteamApp)
         } catch {
             return []
         }
+    }
+
+    private func fetchStoreTopSellersExtended(limit: Int) async -> [SteamApp] {
+        guard let url = buildTopSellersSearchURL() else { return [] }
+
+        do {
+            let payload = try await repository.fetch(cacheKey: "steam_store_topsellers_search_\(storeCountryCode)_\(storeLanguageCode)_\(cacheSchemaVersion)", expiration: 300) {
+                try await self.networking.fetch(url: url, type: StoreSearchResultsPayload.self)
+            }
+
+            let parsedItems = parseTopSellersSearchResults(html: payload.value.resultsHTML)
+            if parsedItems.isEmpty {
+                return []
+            }
+
+            let requestedIDs = Array(parsedItems.map(\.appID).prefix(max(limit, 1)))
+            let idSet = Set(requestedIDs)
+            let detailsByID = await fetchStoreAppDetailsBatch(appIDs: requestedIDs)
+            var apps: [SteamApp] = []
+
+            for item in parsedItems where idSet.contains(item.appID) {
+                if let details = detailsByID[item.appID] {
+                    let base = asSteamApp(details, appID: item.appID)
+                    let app = SteamApp(
+                        id: base.id,
+                        name: base.name,
+                        type: base.type,
+                        price: base.price,
+                        headerImageURL: base.headerImageURL ?? URL(string: item.imageURL ?? ""),
+                        shortDescription: base.shortDescription,
+                        platforms: base.platforms,
+                        developer: base.developer,
+                        publisher: base.publisher,
+                        releaseDate: base.releaseDate,
+                        playerStats: base.playerStats
+                    )
+                    apps.append(app)
+                } else {
+                    apps.append(
+                        SteamApp(
+                            id: item.appID,
+                            name: item.name,
+                            type: .game,
+                            headerImageURL: URL(string: item.imageURL ?? "")
+                        )
+                    )
+                }
+            }
+
+            return Array(uniqueApps(apps).prefix(limit))
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchStoreAppDetailsBatch(appIDs: [Int]) async -> [Int: StoreAppDetailsData] {
+        guard !appIDs.isEmpty else { return [:] }
+
+        var components = URLComponents(url: storeAppDetailsBaseURL, resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "appids", value: appIDs.map(String.init).joined(separator: ",")),
+            URLQueryItem(name: "l", value: storeLanguageCode),
+            URLQueryItem(name: "cc", value: storeCountryCode)
+        ]
+        guard let url = components?.url else { return [:] }
+
+        let appToken = appIDs.prefix(20).map(String.init).joined(separator: "-")
+        do {
+            let response = try await repository.fetch(cacheKey: "store_app_details_batch_\(appToken)_\(cacheSchemaVersion)", expiration: 600) {
+                try await self.networking.fetch(url: url, type: [String: StoreAppDetailsEntry].self)
+            }
+
+            var result: [Int: StoreAppDetailsData] = [:]
+            for (key, entry) in response.value {
+                guard entry.success, let data = entry.data, let appID = Int(key) else { continue }
+                result[appID] = data
+            }
+            return result
+        } catch {
+            return [:]
+        }
+    }
+
+    private func parseTopSellersSearchResults(html: String) -> [StoreTopSellerSearchEntry] {
+        let pattern = #"<a[^>]*data-ds-appid="(\d+)"[\s\S]*?<img[^>]*src="([^"]+)"[\s\S]*?<span class="title">([\s\S]*?)</span>"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return []
+        }
+
+        let ns = html as NSString
+        let matches = regex.matches(in: html, options: [], range: NSRange(location: 0, length: ns.length))
+        var items: [StoreTopSellerSearchEntry] = []
+        var seen = Set<Int>()
+
+        for match in matches {
+            guard match.numberOfRanges >= 4 else { continue }
+            let appIDText = ns.substring(with: match.range(at: 1))
+            let imageURL = ns.substring(with: match.range(at: 2))
+            let rawTitle = ns.substring(with: match.range(at: 3))
+            guard let appID = Int(appIDText), seen.insert(appID).inserted else { continue }
+
+            let title = decodeHTML(rawTitle).trimmingCharacters(in: .whitespacesAndNewlines)
+            items.append(
+                StoreTopSellerSearchEntry(
+                    appID: appID,
+                    name: title.isEmpty ? "Unknown" : title,
+                    imageURL: imageURL
+                )
+            )
+        }
+
+        return items
     }
 
     private func asSteamApp(_ item: StoreFeaturedItem) -> SteamApp {
@@ -348,7 +498,7 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
             let initialPrice = item.originalPrice ?? finalPrice
             price = PriceInfo(
                 current: Double(finalPrice) / 100.0,
-                currency: "USD",
+                currency: item.currency ?? "USD",
                 discountPercent: item.discountPercent ?? 0,
                 initial: Double(initialPrice) / 100.0
             )
@@ -496,7 +646,7 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
                 return (nil, nil, nil)
             }
 
-            let current = matchNumber(in: html, pattern: #"<span class="num">([0-9,]+)</span>\s*<br>\s*players right now"#)
+            let current = matchNumber(in: html, pattern: #"<span class="num">([0-9,]+)</span>\s*<br>\s*playing"#)
             let peak24h = matchNumber(in: html, pattern: #"<span class="num">([0-9,]+)</span>\s*<br>\s*24-hour peak"#)
             let allTime = matchNumber(in: html, pattern: #"<span class="num">([0-9,]+)</span>\s*<br>\s*all-time peak"#)
             return (current, peak24h, allTime)
@@ -566,6 +716,16 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
         return Int(raw.replacingOccurrences(of: ",", with: ""))
     }
 
+    private func decodeHTML(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+    }
+
     private func mapAppType(_ rawType: String?) -> AppType {
         guard let rawType else { return .unknown }
         switch rawType.lowercased() {
@@ -589,8 +749,8 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
         var components = URLComponents(url: storeAppDetailsBaseURL, resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "appids", value: "\(appID)"),
-            URLQueryItem(name: "l", value: "en"),
-            URLQueryItem(name: "cc", value: "us")
+            URLQueryItem(name: "l", value: storeLanguageCode),
+            URLQueryItem(name: "cc", value: storeCountryCode)
         ]
         guard let detailsURL = components?.url else { return nil }
 
@@ -625,6 +785,50 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
             return nil
         }
     }
+
+    private var storeCountryCode: String {
+        let saved = UserDefaults.standard.string(forKey: "steamStoreCountryCode")?.lowercased() ?? "auto"
+        if saved != "auto", saved.count == 2 {
+            return saved
+        }
+        let localeCode = Locale.current.region?.identifier.lowercased() ?? "us"
+        return localeCode.count == 2 ? localeCode : "us"
+    }
+
+    private var storeLanguageCode: String {
+        let saved = UserDefaults.standard.string(forKey: "steamStoreLanguageCode")?.lowercased() ?? "en"
+        if saved.count == 2 {
+            return saved
+        }
+        let localeLanguage = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+        return localeLanguage.count == 2 ? localeLanguage : "en"
+    }
+
+    private func buildStoreFeaturedURL() -> URL? {
+        var components = URLComponents(url: storeFeaturedBaseURL, resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "cc", value: storeCountryCode),
+            URLQueryItem(name: "l", value: storeLanguageCode)
+        ]
+        return components?.url
+    }
+
+    private func buildTopSellersSearchURL() -> URL? {
+        var components = URLComponents(url: storeSearchResultsBaseURL, resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "query", value: ""),
+            URLQueryItem(name: "start", value: "0"),
+            URLQueryItem(name: "count", value: "50"),
+            URLQueryItem(name: "dynamic_data", value: ""),
+            URLQueryItem(name: "sort_by", value: "_ASC"),
+            URLQueryItem(name: "supportedlang", value: storeLanguageCode),
+            URLQueryItem(name: "infinite", value: "1"),
+            URLQueryItem(name: "filter", value: "topsellers"),
+            URLQueryItem(name: "cc", value: storeCountryCode),
+            URLQueryItem(name: "l", value: storeLanguageCode)
+        ]
+        return components?.url
+    }
 }
 
 private struct StoreFeaturedCategoriesPayload: Codable {
@@ -640,6 +844,7 @@ private struct StoreFeaturedSection: Codable {
 private struct StoreFeaturedItem: Codable {
     let id: Int
     let name: String
+    let currency: String?
     let discountPercent: Int?
     let originalPrice: Int?
     let finalPrice: Int?
@@ -653,6 +858,24 @@ private struct StoreFeaturedItem: Codable {
 private struct StoreSearchPayload: Codable {
     let total: Int?
     let items: [StoreSearchItem]
+}
+
+private struct StoreSearchResultsPayload: Codable {
+    let success: Int
+    let resultsHTML: String
+    let totalCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case resultsHTML = "results_html"
+        case totalCount = "total_count"
+    }
+}
+
+private struct StoreTopSellerSearchEntry {
+    let appID: Int
+    let name: String
+    let imageURL: String?
 }
 
 private struct StoreSearchItem: Codable {

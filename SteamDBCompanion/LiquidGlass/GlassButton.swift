@@ -9,6 +9,7 @@ public enum GlassButtonStyle {
 /// A button styled with the Liquid Glass system.
 public struct GlassButton: View {
     
+    @Environment(\.colorScheme) private var colorScheme
     var title: String
     var icon: String?
     var style: GlassButtonStyle
@@ -24,7 +25,7 @@ public struct GlassButton: View {
     var backgroundColor: Color {
         switch style {
         case .primary: return LiquidGlassTheme.Colors.neonPrimary.opacity(0.2)
-        case .secondary: return Color.white.opacity(0.1)
+        case .secondary: return colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.1)
         case .destructive: return LiquidGlassTheme.Colors.neonError.opacity(0.2)
         }
     }
@@ -32,7 +33,7 @@ public struct GlassButton: View {
     var foregroundColor: Color {
         switch style {
         case .primary: return LiquidGlassTheme.Colors.neonPrimary
-        case .secondary: return .primary
+        case .secondary: return colorScheme == .dark ? .white : .primary
         case .destructive: return LiquidGlassTheme.Colors.neonError
         }
     }

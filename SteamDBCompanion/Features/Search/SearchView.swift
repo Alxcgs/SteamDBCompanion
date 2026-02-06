@@ -2,10 +2,12 @@ import SwiftUI
 
 public struct SearchView: View {
     
+    private let dataSource: SteamDBDataSource
     @StateObject private var viewModel: SearchViewModel
     @FocusState private var isFocused: Bool
     
     public init(dataSource: SteamDBDataSource) {
+        self.dataSource = dataSource
         _viewModel = StateObject(wrappedValue: SearchViewModel(dataSource: dataSource))
     }
     
@@ -72,7 +74,9 @@ public struct SearchView: View {
                                     spacing: 16
                                 ) {
                                     ForEach(viewModel.results) { app in
-                                        NavigationLink(value: app) {
+                                        NavigationLink {
+                                            AppDetailView(appID: app.id, dataSource: dataSource)
+                                        } label: {
                                             SearchResultRow(app: app)
                                         }
                                         .buttonStyle(.plain)
@@ -83,7 +87,9 @@ public struct SearchView: View {
                                 // iPhone: List layout
                                 LazyVStack(spacing: 12) {
                                     ForEach(viewModel.results) { app in
-                                        NavigationLink(value: app) {
+                                        NavigationLink {
+                                            AppDetailView(appID: app.id, dataSource: dataSource)
+                                        } label: {
                                             SearchResultRow(app: app)
                                         }
                                         .buttonStyle(.plain)
@@ -161,7 +167,7 @@ private struct SearchCapsuleImage: View {
                         .fill(Color.black.opacity(0.3))
                     image
                         .resizable()
-                        .scaledToFit()
+                        .scaledToFill()
                 }
             case .failure:
                 RoundedRectangle(cornerRadius: 8)

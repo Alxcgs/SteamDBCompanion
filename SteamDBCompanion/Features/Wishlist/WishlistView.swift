@@ -26,6 +26,20 @@ public struct WishlistView: View {
                     Text("Your wishlist is empty")
                         .font(.title2)
                         .foregroundStyle(.secondary)
+                    NavigationLink {
+                        WebFallbackShellView(url: URL(string: "https://store.steampowered.com/wishlist/")!, title: "Steam Wishlist")
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "heart.text.square")
+                            Text("Open Steam Wishlist (Web)")
+                                .fontWeight(.semibold)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
                 }
             } else {
                 ScrollView {
@@ -42,6 +56,36 @@ public struct WishlistView: View {
             }
         }
         .navigationTitle("Wishlist")
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                NavigationLink {
+                    WebFallbackShellView(url: URL(string: "https://store.steampowered.com/login/")!, title: "Sign in with Steam")
+                } label: {
+                    Image(systemName: "person.crop.circle.badge.plus")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await viewModel.syncFromSteamAccount() }
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    WebFallbackShellView(url: URL(string: "https://store.steampowered.com/wishlist/")!, title: "Steam Wishlist")
+                } label: {
+                    Image(systemName: "safari")
+                }
+            }
+        }
+        .alert("Steam Sync", isPresented: $viewModel.showSyncAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.syncAlertMessage)
+        }
         .task {
             await viewModel.loadWishlist()
         }
@@ -54,13 +98,8 @@ struct WishlistRow: View {
     var body: some View {
         GlassCard(padding: 12) {
             HStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.black.opacity(0.3))
-                    .frame(width: 60, height: 60)
-                    .overlay(
-                        Image(systemName: "gamecontroller")
-                            .foregroundStyle(.white.opacity(0.5))
-                    )
+                WishlistCapsuleImage(imageURL: app.headerImageURL)
+                    .frame(width: 112, height: 42)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(app.name)
@@ -92,5 +131,38 @@ struct WishlistRow: View {
                     .foregroundStyle(LiquidGlassTheme.Colors.neonSecondary)
             }
         }
+    }
+}
+
+private struct WishlistCapsuleImage: View {
+    let imageURL: URL?
+
+    var body: some View {
+        AsyncImage(url: imageURL) { phase in
+            switch phase {
+            case .empty:
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.3))
+            case let .success(image):
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.black.opacity(0.3))
+                    image
+                        .resizable()
+                        .scaledToFill()
+                }
+            case .failure:
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.3))
+                    .overlay(
+                        Image(systemName: "gamecontroller.fill")
+                            .foregroundStyle(.white.opacity(0.2))
+                    )
+            @unknown default:
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.3))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

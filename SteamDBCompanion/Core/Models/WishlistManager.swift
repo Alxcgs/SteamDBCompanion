@@ -24,6 +24,11 @@ public class WishlistManager: ObservableObject {
     public func isWishlisted(appID: Int) -> Bool {
         wishlist.contains(appID)
     }
+
+    public func setWishlist(_ appIDs: Set<Int>) {
+        wishlist = appIDs
+        save()
+    }
     
     private func save() {
         if let data = try? JSONEncoder().encode(wishlist) {

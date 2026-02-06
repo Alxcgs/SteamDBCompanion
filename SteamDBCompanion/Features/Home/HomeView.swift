@@ -25,18 +25,10 @@ public struct HomeView: View {
                             Text("SteamDB")
                                 .font(.system(size: 34, weight: .bold, design: .rounded))
                                 .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                             
                             Spacer()
-                            
-                            NavigationLink(destination: SettingsView()) {
-                                Image(systemName: "gearshape.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.1))
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(.plain)
                             
                             NavigationLink(destination: WishlistView(dataSource: dataSource, wishlistManager: wishlistManager)) {
                                 Image(systemName: "heart.fill")
@@ -162,6 +154,14 @@ public struct HomeView: View {
                 }
             }
             .task {
+                await viewModel.refreshIfStale(maxAge: 0)
+            }
+            .onAppear {
+                Task {
+                    await viewModel.refreshIfStale(maxAge: 300)
+                }
+            }
+            .refreshable {
                 await viewModel.loadData()
             }
             .navigationDestination(for: SteamApp.self) { app in
@@ -291,7 +291,7 @@ private struct SteamCapsuleImage: View {
                         .fill(Color.black.opacity(0.3))
                     image
                         .resizable()
-                        .scaledToFit()
+                        .scaledToFill()
                 }
             case .failure:
                 RoundedRectangle(cornerRadius: cornerRadius)

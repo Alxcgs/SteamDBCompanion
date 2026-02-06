@@ -11,12 +11,14 @@ public class HomeViewModel: ObservableObject {
     @Published public var errorMessage: String?
     
     private let dataSource: SteamDBDataSource
+    private var lastLoadedAt: Date?
     
     public init(dataSource: SteamDBDataSource = MockSteamDBDataSource()) {
         self.dataSource = dataSource
     }
     
     public func loadData() async {
+        guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
         
@@ -26,10 +28,24 @@ public class HomeViewModel: ObservableObject {
 
             let topResult = try await dataSource.fetchTopSellers()
             self.topSellers = topResult
+            self.lastLoadedAt = Date()
         } catch {
             self.errorMessage = "Failed to load data: \(error.localizedDescription)"
         }
         
         isLoading = false
+    }
+
+    public func refreshIfStale(maxAge: TimeInterval = 300) async {
+        guard !isLoading else { return }
+
+        if let lastLoadedAt,
+           Date().timeIntervalSince(lastLoadedAt) < maxAge,
+           !trendingApps.isEmpty,
+           !topSellers.isEmpty {
+            return
+        }
+
+        await loadData()
     }
 }

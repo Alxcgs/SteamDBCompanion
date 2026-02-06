@@ -26,6 +26,13 @@ public struct UpdatesView: View {
                 ProgressView("Checking updates...")
             } else {
                 List {
+                    if let error = viewModel.errorMessage, !error.isEmpty {
+                        Section("Status") {
+                            Text(error)
+                                .foregroundStyle(LiquidGlassTheme.Colors.neonError)
+                        }
+                    }
+
                     if !alertEngine.latestDiffs.isEmpty {
                         Section("New Changes") {
                             ForEach(alertEngine.latestDiffs) { diff in
@@ -65,6 +72,33 @@ public struct UpdatesView: View {
                         }
                     }
 
+                    Section("Steam News") {
+                        if viewModel.steamNews.isEmpty {
+                            Text("No news loaded yet. Pull to refresh.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(viewModel.steamNews) { item in
+                                NavigationLink {
+                                    WebFallbackShellView(url: item.url, title: "Steam News")
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(item.title)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                                            .lineLimit(2)
+
+                                        if let publishedAt = item.publishedAt {
+                                            Text(publishedAt, style: .date)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    .padding(.vertical, 2)
+                                }
+                            }
+                        }
+                    }
+
                     Section("Background Policy") {
                         Text("This build uses free in-app alerts without APNs. Updates are checked on refresh/open.")
                             .font(.footnote)
@@ -85,6 +119,14 @@ public struct UpdatesView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Refresh") {
                     Task { await viewModel.refresh() }
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    WebFallbackShellView(url: URL(string: "https://store.steampowered.com/news/")!, title: "Steam News")
+                } label: {
+                    Image(systemName: "newspaper")
                 }
             }
 

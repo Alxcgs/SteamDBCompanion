@@ -17,7 +17,9 @@ public struct RouteHostView: View {
 
     @ViewBuilder
     private var content: some View {
-        if resolution.descriptor.mode == .webFallback {
+        if resolution.normalizedPath == "/news" {
+            WebFallbackShellView(url: URL(string: "https://store.steampowered.com/news/")!, title: "Steam News")
+        } else if resolution.descriptor.mode == .webFallback {
             WebFallbackShellView(path: resolution.normalizedPath, title: resolution.descriptor.title)
         } else if let appID = extractAppID(from: resolution.normalizedPath) {
             AppDetailView(appID: appID, dataSource: dataSource)

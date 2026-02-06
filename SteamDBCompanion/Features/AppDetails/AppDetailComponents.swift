@@ -5,6 +5,7 @@ struct AppDetailContent: View {
     let app: SteamApp
     @ObservedObject var viewModel: AppDetailViewModel
     @ObservedObject var wishlistManager: WishlistManager
+    @Environment(\.openURL) private var openURL
     
     var body: some View {
         VStack(spacing: 16) {
@@ -91,7 +92,9 @@ struct AppDetailContent: View {
                 }
                 
                 GlassButton("Store", icon: "cart", style: .primary) {
-                    // Open in Steam
+                    if let storeURL = URL(string: "https://store.steampowered.com/app/\(app.id)/") {
+                        openURL(storeURL)
+                    }
                 }
             }
         }
@@ -103,6 +106,7 @@ struct AppDetailLeftColumn: View {
     let app: SteamApp
     @ObservedObject var viewModel: AppDetailViewModel
     @ObservedObject var wishlistManager: WishlistManager
+    @Environment(\.openURL) private var openURL
     
     var body: some View {
         Group {
@@ -158,7 +162,9 @@ struct AppDetailLeftColumn: View {
                 }
                 
                 GlassButton("View in Steam Store", icon: "cart", style: .primary) {
-                    // Open in Steam
+                    if let storeURL = URL(string: "https://store.steampowered.com/app/\(app.id)/") {
+                        openURL(storeURL)
+                    }
                 }
             }
         }

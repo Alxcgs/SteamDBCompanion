@@ -3,22 +3,39 @@ import SwiftUI
 struct ContentView: View {
     
     let dataSource: SteamDBDataSource
+    @AppStorage("fullWebsiteModeEnabled") private var fullWebsiteModeEnabled = false
     @EnvironmentObject private var deepLinkRouter: DeepLinkRouter
     @EnvironmentObject private var wishlistManager: WishlistManager
     @EnvironmentObject private var alertEngine: InAppAlertEngine
     
     var body: some View {
         TabView {
-            HomeView(dataSource: dataSource)
+            if fullWebsiteModeEnabled {
+                NavigationStack {
+                    WebFallbackShellView(url: URL(string: "https://steamdb.info/")!, title: "SteamDB")
+                }
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
 
-            NavigationStack {
-                RouteDirectoryView(dataSource: dataSource)
-            }
-            .tabItem {
-                Label("Explore", systemImage: "map.fill")
+                NavigationStack {
+                    WebFallbackShellView(url: URL(string: "https://steamdb.info/search/")!, title: "Explore")
+                }
+                .tabItem {
+                    Label("Explore", systemImage: "map.fill")
+                }
+            } else {
+                HomeView(dataSource: dataSource)
+                    .tabItem {
+                        Label("Home", systemImage: "house.fill")
+                    }
+
+                NavigationStack {
+                    RouteDirectoryView(dataSource: dataSource)
+                }
+                .tabItem {
+                    Label("Explore", systemImage: "map.fill")
+                }
             }
 
             NavigationStack {

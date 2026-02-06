@@ -4,6 +4,7 @@ import SwiftUI
 /// Material background, rounded corners, border, and shadow.
 public struct GlassCard<Content: View>: View {
     
+    @Environment(\.colorScheme) private var colorScheme
     var content: Content
     var padding: CGFloat
     
@@ -16,11 +17,25 @@ public struct GlassCard<Content: View>: View {
         content
             .padding(padding)
             .background(
-                GlassBackgroundView(material: .thinMaterial)
+                RoundedRectangle(cornerRadius: LiquidGlassTheme.Layout.cornerRadius)
+                    .fill(cardBackground)
             )
             .clipShape(RoundedRectangle(cornerRadius: LiquidGlassTheme.Layout.cornerRadius))
-            .glassBorder()
-            .shadow(color: Color.black.opacity(0.15), radius: 15, x: 0, y: 10)
+            .overlay(
+                RoundedRectangle(cornerRadius: LiquidGlassTheme.Layout.cornerRadius)
+                    .strokeBorder(cardBorder, lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.15), radius: 15, x: 0, y: 10)
+    }
+
+    private var cardBackground: Color {
+        colorScheme == .dark
+            ? Color(red: 0.08, green: 0.08, blue: 0.10).opacity(0.92)
+            : Color.white.opacity(0.55)
+    }
+
+    private var cardBorder: Color {
+        colorScheme == .dark ? Color.white.opacity(0.14) : Color.white.opacity(0.45)
     }
 }
 
