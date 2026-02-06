@@ -15,18 +15,35 @@ public struct RouteDirectoryView: View {
                 if let entries = groupedRoutes[group] {
                     Section(groupTitle(group)) {
                         ForEach(entries.filter(\.enabled)) { descriptor in
-                            NavigationLink {
-                                RouteHostView(path: descriptor.path, dataSource: dataSource)
-                            } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(descriptor.title)
-                                        Text(descriptor.path)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                            if descriptor.path.contains(":") {
+                                NavigationLink {
+                                    ParameterizedRouteInputView(descriptor: descriptor, dataSource: dataSource)
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(descriptor.title)
+                                            Text(descriptor.path)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        modeBadge(descriptor.mode)
                                     }
-                                    Spacer()
-                                    modeBadge(descriptor.mode)
+                                }
+                            } else {
+                                NavigationLink {
+                                    RouteHostView(path: descriptor.path, dataSource: dataSource)
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(descriptor.title)
+                                            Text(descriptor.path)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        modeBadge(descriptor.mode)
+                                    }
                                 }
                             }
                         }
@@ -65,5 +82,80 @@ public struct RouteDirectoryView: View {
         case .entities: return "Entities"
         case .unknown: return "Other"
         }
+    }
+}
+
+private struct ParameterizedRouteInputView: View {
+    let descriptor: RouteDescriptor
+    let dataSource: SteamDBDataSource
+
+    @State private var parameterValue = ""
+    @State private var resolvedPath: String?
+
+    var body: some View {
+        VStack(spacing: 16) {
+            GlassCard {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Path template")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(descriptor.path)
+                        .font(.headline)
+                    TextField(parameterPlaceholder, text: $parameterValue)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+            .padding(.horizontal)
+
+            GlassButton("Open", style: .primary) {
+                resolvedPath = buildPath()
+            }
+            .padding(.horizontal)
+
+            Spacer()
+
+            NavigationLink(
+                destination: Group {
+                    if let resolvedPath {
+                        RouteHostView(path: resolvedPath, dataSource: dataSource)
+                    } else {
+                        EmptyView()
+                    }
+                },
+                isActive: Binding(
+                    get: { resolvedPath != nil },
+                    set: { isActive in
+                        if !isActive {
+                            resolvedPath = nil
+                        }
+                    }
+                )
+            ) {
+                EmptyView()
+            }
+            .hidden()
+        }
+        .padding(.top, 16)
+        .navigationTitle(descriptor.title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var parameterPlaceholder: String {
+        let firstParameter = descriptor.path.split(separator: "/").first { $0.hasPrefix(":") }.map(String.init)
+        if let firstParameter {
+            return firstParameter.replacingOccurrences(of: ":", with: "")
+        }
+        return "id"
+    }
+
+    private func buildPath() -> String {
+        let value = parameterValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackValue = value.isEmpty ? "730" : value
+        let components = descriptor.path
+            .split(separator: "/")
+            .map { segment -> String in
+                segment.hasPrefix(":") ? fallbackValue : String(segment)
+            }
+        return "/\(components.joined(separator: "/"))"
     }
 }

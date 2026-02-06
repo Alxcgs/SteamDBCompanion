@@ -41,6 +41,7 @@ public class SearchViewModel: ObservableObject {
                 let apps = try await dataSource.searchApps(query: query)
                 if !Task.isCancelled {
                     self.results = apps
+                    self.errorMessage = nil
                     self.isSearching = false
                 }
             } catch {

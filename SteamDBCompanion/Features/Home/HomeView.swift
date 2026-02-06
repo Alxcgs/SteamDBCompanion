@@ -180,15 +180,41 @@ struct TrendingAppCard: View {
         NavigationLink(value: app) {
             GlassCard(padding: 0) {
                 VStack(alignment: .leading) {
-                    // Placeholder for game image
-                    Rectangle()
-                        .fill(Color.black.opacity(0.3))
+                    if let imageURL = app.headerImageURL {
+                        AsyncImage(url: imageURL) { phase in
+                            switch phase {
+                            case .empty:
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.3))
+                            case let .success(image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            case .failure:
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.3))
+                                    .overlay(
+                                        Image(systemName: "gamecontroller.fill")
+                                            .font(.largeTitle)
+                                            .foregroundStyle(.white.opacity(0.2))
+                                    )
+                            @unknown default:
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.3))
+                            }
+                        }
                         .frame(height: 120)
-                        .overlay(
-                            Image(systemName: "gamecontroller.fill")
-                                .font(.largeTitle)
-                                .foregroundStyle(.white.opacity(0.2))
-                        )
+                        .clipped()
+                    } else {
+                        Rectangle()
+                            .fill(Color.black.opacity(0.3))
+                            .frame(height: 120)
+                            .overlay(
+                                Image(systemName: "gamecontroller.fill")
+                                    .font(.largeTitle)
+                                    .foregroundStyle(.white.opacity(0.2))
+                            )
+                    }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(app.name)
@@ -221,8 +247,33 @@ struct TopSellerRow: View {
     
     var body: some View {
         NavigationLink(value: app) {
-            GlassCard(padding: 12) {
-                HStack {
+        GlassCard(padding: 12) {
+            HStack {
+                if let imageURL = app.headerImageURL {
+                    AsyncImage(url: imageURL) { phase in
+                        switch phase {
+                        case .empty:
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.black.opacity(0.3))
+                        case let .success(image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .failure:
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.black.opacity(0.3))
+                                .overlay(
+                                    Image(systemName: "gamecontroller")
+                                        .foregroundStyle(.white.opacity(0.5))
+                                )
+                        @unknown default:
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.black.opacity(0.3))
+                        }
+                    }
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color.black.opacity(0.3))
                         .frame(width: 60, height: 60)
@@ -230,6 +281,7 @@ struct TopSellerRow: View {
                             Image(systemName: "gamecontroller")
                                 .foregroundStyle(.white.opacity(0.5))
                         )
+                }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(app.name)

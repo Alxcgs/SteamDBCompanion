@@ -24,15 +24,13 @@ public class AppDetailViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            async let appData = dataSource.fetchAppDetails(appID: appID)
-            async let historyData = dataSource.fetchPriceHistory(appID: appID)
-            async let trendData = dataSource.fetchPlayerTrend(appID: appID)
-            
-            let (fetchedApp, fetchedHistory, fetchedTrend) = try await (appData, historyData, trendData)
-            
+            let fetchedApp = try await dataSource.fetchAppDetails(appID: appID)
             self.app = fetchedApp
-            self.priceHistory = fetchedHistory
-            self.playerTrend = fetchedTrend
+
+            async let historyData: PriceHistory? = try? dataSource.fetchPriceHistory(appID: appID)
+            async let trendData: PlayerTrend? = try? dataSource.fetchPlayerTrend(appID: appID)
+            self.priceHistory = await historyData
+            self.playerTrend = await trendData
         } catch {
             self.errorMessage = "Failed to load details: \(error.localizedDescription)"
         }

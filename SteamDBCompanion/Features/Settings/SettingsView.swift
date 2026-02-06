@@ -1,6 +1,8 @@
 import SwiftUI
 
 public struct SettingsView: View {
+    @Environment(\.openURL) private var openURL
+
     public init() {}
     
     public var body: some View {
@@ -70,6 +72,11 @@ public struct SettingsView: View {
                             Text("SteamDB Companion is unofficial and uses public data only.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+
+                            GlassButton("Open SteamDB Login in Safari", icon: "safari", style: .secondary) {
+                                guard let loginURL = URL(string: "https://steamdb.info/login/") else { return }
+                                openURL(loginURL)
+                            }
                         }
                     }
                     .padding(.horizontal)

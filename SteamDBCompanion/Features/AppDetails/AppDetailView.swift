@@ -23,17 +23,47 @@ public struct AppDetailView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         // Header Image
-                        Rectangle()
-                            .fill(Color.black.opacity(0.3))
+                        if let imageURL = app.headerImageURL {
+                            AsyncImage(url: imageURL) { phase in
+                                switch phase {
+                                case .empty:
+                                    Rectangle()
+                                        .fill(Color.black.opacity(0.3))
+                                case let .success(image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                case .failure:
+                                    Rectangle()
+                                        .fill(Color.black.opacity(0.3))
+                                        .overlay(
+                                            Image(systemName: "gamecontroller.fill")
+                                                .font(.system(size: 60))
+                                                .foregroundStyle(.white.opacity(0.2))
+                                        )
+                                @unknown default:
+                                    Rectangle()
+                                        .fill(Color.black.opacity(0.3))
+                                }
+                            }
                             .frame(height: 200)
-                            .overlay(
-                                Image(systemName: "gamecontroller.fill")
-                                    .font(.system(size: 60))
-                                    .foregroundStyle(.white.opacity(0.2))
-                            )
+                            .clipped()
                             .overlay(
                                 LinearGradient(colors: [.clear, .black.opacity(0.5)], startPoint: .top, endPoint: .bottom)
                             )
+                        } else {
+                            Rectangle()
+                                .fill(Color.black.opacity(0.3))
+                                .frame(height: 200)
+                                .overlay(
+                                    Image(systemName: "gamecontroller.fill")
+                                        .font(.system(size: 60))
+                                        .foregroundStyle(.white.opacity(0.2))
+                                )
+                                .overlay(
+                                    LinearGradient(colors: [.clear, .black.opacity(0.5)], startPoint: .top, endPoint: .bottom)
+                                )
+                        }
                         
                         VStack(alignment: .leading, spacing: 24) {
                             // Title & Price
@@ -79,6 +109,20 @@ public struct AppDetailView: View {
                                 StatCard(title: "24h Peak", value: "\(app.playerStats?.peak24h ?? 0)", icon: "chart.bar.fill")
                                 StatCard(title: "All-Time Peak", value: "\(app.playerStats?.allTimePeak ?? 0)", icon: "trophy.fill")
                                 StatCard(title: "App ID", value: "\(app.id)", icon: "number")
+                            }
+
+                            if let shortDescription = app.shortDescription, !shortDescription.isEmpty {
+                                GlassCard {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Description")
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+                                        Text(shortDescription)
+                                            .font(.body)
+                                            .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
                             }
                             
                             // Platforms

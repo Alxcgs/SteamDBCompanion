@@ -50,6 +50,16 @@ public struct SearchView: View {
                         if viewModel.isSearching {
                             ProgressView()
                                 .padding(.top, 50)
+                        } else if let errorMessage = viewModel.errorMessage {
+                            VStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .foregroundStyle(LiquidGlassTheme.Colors.neonError)
+                                Text(errorMessage)
+                                    .font(.callout)
+                                    .multilineTextAlignment(.center)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.top, 50)
                         } else if viewModel.results.isEmpty && !viewModel.query.isEmpty {
                             Text("No results found")
                                 .foregroundStyle(.secondary)
@@ -102,13 +112,39 @@ struct SearchResultRow: View {
     var body: some View {
         GlassCard(padding: 12) {
             HStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.black.opacity(0.3))
+                if let imageURL = app.headerImageURL {
+                    AsyncImage(url: imageURL) { phase in
+                        switch phase {
+                        case .empty:
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.black.opacity(0.3))
+                        case let .success(image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .failure:
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.black.opacity(0.3))
+                                .overlay(
+                                    Image(systemName: "gamecontroller")
+                                        .foregroundStyle(.white.opacity(0.5))
+                                )
+                        @unknown default:
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.black.opacity(0.3))
+                        }
+                    }
                     .frame(width: 50, height: 50)
-                    .overlay(
-                        Image(systemName: "gamecontroller")
-                            .foregroundStyle(.white.opacity(0.5))
-                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.black.opacity(0.3))
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Image(systemName: "gamecontroller")
+                                .foregroundStyle(.white.opacity(0.5))
+                        )
+                }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(app.name)

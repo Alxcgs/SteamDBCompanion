@@ -33,6 +33,8 @@ public struct GatewayApp: Identifiable, Codable, Hashable {
     public let currency: String?
     public let discountPercent: Int?
     public let initialPrice: Double?
+    public let headerImageURL: String?
+    public let shortDescription: String?
     public let platforms: [Platform]
     public let developer: String?
     public let publisher: String?
@@ -48,6 +50,8 @@ public struct GatewayApp: Identifiable, Codable, Hashable {
         currency: String? = nil,
         discountPercent: Int? = nil,
         initialPrice: Double? = nil,
+        headerImageURL: String? = nil,
+        shortDescription: String? = nil,
         platforms: [Platform] = [],
         developer: String? = nil,
         publisher: String? = nil,
@@ -62,6 +66,8 @@ public struct GatewayApp: Identifiable, Codable, Hashable {
         self.currency = currency
         self.discountPercent = discountPercent
         self.initialPrice = initialPrice
+        self.headerImageURL = headerImageURL
+        self.shortDescription = shortDescription
         self.platforms = platforms
         self.developer = developer
         self.publisher = publisher
@@ -242,6 +248,8 @@ public extension GatewayApp {
             name: name,
             type: appType,
             price: price,
+            headerImageURL: URL(string: headerImageURL ?? ""),
+            shortDescription: shortDescription,
             platforms: platforms,
             developer: developer,
             publisher: publisher,

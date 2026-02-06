@@ -5,17 +5,33 @@ public struct SteamApp: Identifiable, Codable, Hashable {
     public let name: String
     public let type: AppType
     public let price: PriceInfo?
+    public let headerImageURL: URL?
+    public let shortDescription: String?
     public let platforms: [Platform]
     public let developer: String?
     public let publisher: String?
     public let releaseDate: Date?
     public let playerStats: PlayerStats?
     
-    public init(id: Int, name: String, type: AppType, price: PriceInfo? = nil, platforms: [Platform] = [], developer: String? = nil, publisher: String? = nil, releaseDate: Date? = nil, playerStats: PlayerStats? = nil) {
+    public init(
+        id: Int,
+        name: String,
+        type: AppType,
+        price: PriceInfo? = nil,
+        headerImageURL: URL? = nil,
+        shortDescription: String? = nil,
+        platforms: [Platform] = [],
+        developer: String? = nil,
+        publisher: String? = nil,
+        releaseDate: Date? = nil,
+        playerStats: PlayerStats? = nil
+    ) {
         self.id = id
         self.name = name
         self.type = type
         self.price = price
+        self.headerImageURL = headerImageURL
+        self.shortDescription = shortDescription
         self.platforms = platforms
         self.developer = developer
         self.publisher = publisher
