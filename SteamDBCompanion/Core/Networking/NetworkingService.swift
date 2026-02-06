@@ -9,14 +9,17 @@ public enum NetworkError: Error {
 }
 
 public actor NetworkingService {
+    private let session: URLSession
     
-    public init() {}
+    public init(session: URLSession = .shared) {
+        self.session = session
+    }
     
     public func fetchData(url: URL) async throws -> Data {
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36", forHTTPHeaderField: "User-Agent")
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.unknown

@@ -4,7 +4,11 @@ import Combine
 @MainActor
 public class SearchViewModel: ObservableObject {
     
-    @Published public var query: String = ""
+    @Published public var query: String = "" {
+        didSet {
+            search()
+        }
+    }
     @Published public var results: [SteamApp] = []
     @Published public var isSearching: Bool = false
     @Published public var errorMessage: String?

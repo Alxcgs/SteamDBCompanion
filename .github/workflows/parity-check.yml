@@ -1,0 +1,17 @@
+name: Parity Matrix Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate parity matrix
+        run: ./scripts/check_parity_matrix.sh

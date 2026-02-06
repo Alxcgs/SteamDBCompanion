@@ -1,5 +1,11 @@
 import Foundation
 
+public struct CacheLookup<T> {
+    public let value: T
+    public let age: TimeInterval
+    public let isExpired: Bool
+}
+
 public actor CacheService {
     
     public static let shared = CacheService()
@@ -25,21 +31,35 @@ public actor CacheService {
     }
     
     public func load<T: Decodable>(key: String, type: T.Type, expiration: TimeInterval = 3600) -> T? {
+        guard let lookup = loadWithMetadata(key: key, type: type, expiration: expiration) else {
+            return nil
+        }
+
+        guard !lookup.isExpired else { return nil }
+        return lookup.value
+    }
+
+    public func loadAllowExpired<T: Decodable>(key: String, type: T.Type, expiration: TimeInterval = 3600) -> CacheLookup<T>? {
+        loadWithMetadata(key: key, type: type, expiration: expiration)
+    }
+
+    public func loadWithMetadata<T: Decodable>(key: String, type: T.Type, expiration: TimeInterval = 3600) -> CacheLookup<T>? {
         let fileURL = cacheDirectory.appendingPathComponent(key.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? key)
         
         guard fileManager.fileExists(atPath: fileURL.path) else { return nil }
         
         do {
             let attributes = try fileManager.attributesOfItem(atPath: fileURL.path)
+            let age: TimeInterval
             if let modificationDate = attributes[.modificationDate] as? Date {
-                if Date().timeIntervalSince(modificationDate) > expiration {
-                    try? fileManager.removeItem(at: fileURL)
-                    return nil
-                }
+                age = Date().timeIntervalSince(modificationDate)
+            } else {
+                age = 0
             }
             
             let data = try Data(contentsOf: fileURL)
-            return try JSONDecoder().decode(T.self, from: data)
+            let decoded = try JSONDecoder().decode(T.self, from: data)
+            return CacheLookup(value: decoded, age: age, isExpired: age > expiration)
         } catch {
             print("Cache load failed: \(error)")
             return nil

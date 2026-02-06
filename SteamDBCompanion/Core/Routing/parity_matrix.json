@@ -1,0 +1,33 @@
+{
+  "routes": [
+    { "path": "/", "title": "Home", "mode": "native", "group": "home", "enabled": true },
+    { "path": "/search", "title": "Search", "mode": "native", "group": "search", "enabled": true },
+    { "path": "/instantsearch", "title": "Instant Search", "mode": "native", "group": "search", "enabled": true },
+    { "path": "/app/:id", "title": "App Overview", "mode": "native", "group": "app", "enabled": true },
+    { "path": "/app/:id/charts", "title": "App Charts", "mode": "native", "group": "charts", "enabled": true },
+    { "path": "/sales", "title": "Sales", "mode": "native", "group": "sales", "enabled": true },
+    { "path": "/charts", "title": "Charts", "mode": "native", "group": "charts", "enabled": true },
+    { "path": "/calendar", "title": "Calendar", "mode": "native", "group": "calendar", "enabled": true },
+    { "path": "/pricechanges", "title": "Price Changes", "mode": "native", "group": "sales", "enabled": true },
+    { "path": "/upcoming", "title": "Upcoming", "mode": "native", "group": "calendar", "enabled": true },
+    { "path": "/freepackages", "title": "Free Packages", "mode": "native", "group": "sales", "enabled": true },
+    { "path": "/bundles", "title": "Bundles", "mode": "native", "group": "sales", "enabled": true },
+    { "path": "/top-rated", "title": "Top Rated", "mode": "native", "group": "rankings", "enabled": true },
+    { "path": "/topsellers/global", "title": "Top Sellers (Global)", "mode": "native", "group": "rankings", "enabled": true },
+    { "path": "/topsellers/weekly", "title": "Top Sellers (Weekly)", "mode": "native", "group": "rankings", "enabled": true },
+    { "path": "/mostfollowed", "title": "Most Followed", "mode": "native", "group": "rankings", "enabled": true },
+    { "path": "/mostwished", "title": "Most Wished", "mode": "native", "group": "rankings", "enabled": true },
+    { "path": "/wishlists", "title": "Wishlists", "mode": "native", "group": "rankings", "enabled": true },
+    { "path": "/dailyactiveusers", "title": "Daily Active Users", "mode": "native", "group": "rankings", "enabled": true },
+    { "path": "/calculator", "title": "Calculator", "mode": "webFallback", "group": "utility", "enabled": true },
+    { "path": "/tags", "title": "Tags", "mode": "webFallback", "group": "utility", "enabled": true },
+    { "path": "/patchnotes", "title": "Patch Notes", "mode": "webFallback", "group": "utility", "enabled": true },
+    { "path": "/events", "title": "Events", "mode": "webFallback", "group": "utility", "enabled": true },
+    { "path": "/year", "title": "Year in Review", "mode": "webFallback", "group": "utility", "enabled": true },
+    { "path": "/developer/:id", "title": "Developer", "mode": "webFallback", "group": "entities", "enabled": true },
+    { "path": "/publisher/:id", "title": "Publisher", "mode": "webFallback", "group": "entities", "enabled": true },
+    { "path": "/sub/:id", "title": "Package", "mode": "webFallback", "group": "entities", "enabled": true },
+    { "path": "/bundle/:id", "title": "Bundle", "mode": "webFallback", "group": "entities", "enabled": true },
+    { "path": "/depot/:id", "title": "Depot", "mode": "webFallback", "group": "entities", "enabled": true }
+  ]
+}

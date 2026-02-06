@@ -1,10 +1,6 @@
 import SwiftUI
 
 public struct SettingsView: View {
-    
-    @StateObject private var notificationService = NotificationRegistrationService.shared
-    @State private var showPermissionSheet = false
-    
     public init() {}
     
     public var body: some View {
@@ -30,25 +26,23 @@ public struct SettingsView: View {
                             HStack {
                                 Image(systemName: "bell.fill")
                                     .foregroundStyle(LiquidGlassTheme.Colors.neonPrimary)
-                                Text("Notifications")
+                                Text("In-App Alerts")
                                     .font(.headline)
                                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                                 Spacer()
                             }
-                            
-                            if notificationService.isAuthorized {
-                                HStack {
-                                    Text("Status")
-                                    Spacer()
-                                    Text("Active")
-                                        .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
-                                }
+
+                            Text("Price and player alerts run for wishlisted apps when you refresh or open the app.")
                                 .font(.subheadline)
-                            } else {
-                                GlassButton("Enable Notifications", style: .primary) {
-                                    showPermissionSheet = true
-                                }
+                                .foregroundStyle(.secondary)
+
+                            HStack {
+                                Text("Mode")
+                                Spacer()
+                                Text("Free (No APNs)")
+                                    .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
                             }
+                            .font(.subheadline)
                         }
                     }
                     .padding(.horizontal)
@@ -72,14 +66,15 @@ public struct SettingsView: View {
                             Text("This app is not affiliated with Valve or SteamDB.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+
+                            Text("SteamDB Companion is unofficial and uses public data only.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .padding(.horizontal)
                 }
             }
-        }
-        .sheet(isPresented: $showPermissionSheet) {
-            NotificationPermissionView()
         }
     }
 }

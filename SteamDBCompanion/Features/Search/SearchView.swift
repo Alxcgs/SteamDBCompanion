@@ -23,9 +23,6 @@ public struct SearchView: View {
                     TextField("Search apps, packages...", text: $viewModel.query)
                         .textFieldStyle(.plain)
                         .focused($isFocused)
-                        .onChange(of: viewModel.query) {
-                            viewModel.search()
-                        }
                     
                     if !viewModel.query.isEmpty {
                         Button {
@@ -57,14 +54,14 @@ public struct SearchView: View {
                             Text("No results found")
                                 .foregroundStyle(.secondary)
                                 .padding(.top, 50)
-                        } else if !viewModel.results.isEmpty { // Changed from viewModel.results to viewModel.searchResults in the instruction, assuming viewModel.results is still the correct property
+                        } else if !viewModel.results.isEmpty {
                             if DeviceInfo.isIPad {
                                 // iPad: Grid layout
                                 LazyVGrid(
                                     columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: 2),
                                     spacing: 16
                                 ) {
-                                    ForEach(viewModel.results) { app in // Assuming viewModel.results is the correct property
+                                    ForEach(viewModel.results) { app in
                                         NavigationLink(value: app) {
                                             SearchResultRow(app: app)
                                         }
@@ -75,7 +72,7 @@ public struct SearchView: View {
                             } else {
                                 // iPhone: List layout
                                 LazyVStack(spacing: 12) {
-                                    ForEach(viewModel.results) { app in // Assuming viewModel.results is the correct property
+                                    ForEach(viewModel.results) { app in
                                         NavigationLink(value: app) {
                                             SearchResultRow(app: app)
                                         }

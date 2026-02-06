@@ -3,7 +3,8 @@ import SwiftUI
 @main
 struct SteamDBCompanionApp: App {
     @StateObject private var wishlistManager = WishlistManager()
-    @StateObject private var pushManager = PushNotificationManager()
+    @StateObject private var deepLinkRouter = DeepLinkRouter()
+    @StateObject private var alertEngine = InAppAlertEngine()
     
     // Use RealSteamDBDataSource for production
     private let dataSource: SteamDBDataSource = RealSteamDBDataSource()
@@ -12,8 +13,10 @@ struct SteamDBCompanionApp: App {
         WindowGroup {
             ContentView(dataSource: dataSource)
                 .environmentObject(wishlistManager)
-                .onAppear {
-                    pushManager.requestAuthorization()
+                .environmentObject(deepLinkRouter)
+                .environmentObject(alertEngine)
+                .onOpenURL { url in
+                    deepLinkRouter.handle(url: url)
                 }
         }
     }

@@ -1,0 +1,18 @@
+name = "steamdb-companion-backend"
+main = "src/index.ts"
+compatibility_date = "2026-02-06"
+workers_dev = true
+
+[vars]
+STEAMDB_BASE_URL = "https://steamdb.info"
+PARSER_VERSION = "v1"
+
+[[kv_namespaces]]
+binding = "ROUTE_CACHE"
+id = "REPLACE_WITH_ROUTE_CACHE_KV_ID"
+preview_id = "REPLACE_WITH_ROUTE_CACHE_PREVIEW_ID"
+
+[[kv_namespaces]]
+binding = "USER_WATCHLISTS"
+id = "REPLACE_WITH_WATCHLISTS_KV_ID"
+preview_id = "REPLACE_WITH_WATCHLISTS_PREVIEW_ID"

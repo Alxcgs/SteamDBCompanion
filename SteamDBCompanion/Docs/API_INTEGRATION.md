@@ -1,5 +1,25 @@
 # API Integration Strategy
 
+## Current v1 Gateway Architecture
+
+The iOS app now consumes a Cloudflare Worker gateway (`backend/`) instead of parsing SteamDB HTML directly on-device.
+
+### Gateway endpoints
+- `GET /v1/navigation/routes`
+- `GET /v1/home`
+- `GET /v1/search?q=&page=`
+- `GET /v1/apps/:id/overview`
+- `GET /v1/apps/:id/charts?range=`
+- `GET /v1/collections/:kind`
+- `GET /v1/watchlist/:installationId`
+- `PUT /v1/watchlist/:installationId`
+- `GET /v1/health`
+
+### Availability policy
+- Worker returns fresh data when SteamDB is reachable.
+- If upstream fails or returns `429`, worker serves stale cache from KV (`route_cache`) when available.
+- iOS must treat stale responses as degraded but valid.
+
 ## Data Sources
 
 ### 1. SteamDB Public Data
