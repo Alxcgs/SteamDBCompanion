@@ -16,8 +16,8 @@ public class SearchViewModel: ObservableObject {
     private let dataSource: SteamDBDataSource
     private var searchTask: Task<Void, Never>?
     
-    public init(dataSource: SteamDBDataSource = MockSteamDBDataSource()) {
-        self.dataSource = dataSource
+    public init(dataSource: SteamDBDataSource? = nil) {
+        self.dataSource = dataSource ?? MockSteamDBDataSource()
     }
     
     public func search() {
@@ -48,7 +48,7 @@ public class SearchViewModel: ObservableObject {
                 }
             } catch {
                 if !Task.isCancelled {
-                    self.errorMessage = "Search failed: \(error.localizedDescription)"
+                    self.errorMessage = "\(L10n.tr("search.error", fallback: "Search failed")): \(error.localizedDescription)"
                     self.isSearching = false
                 }
             }

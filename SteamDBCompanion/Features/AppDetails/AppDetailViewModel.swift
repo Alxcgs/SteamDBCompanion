@@ -14,9 +14,9 @@ public class AppDetailViewModel: ObservableObject {
     private let dataSource: SteamDBDataSource
     private let appID: Int
     
-    public init(appID: Int, dataSource: SteamDBDataSource = MockSteamDBDataSource()) {
+    public init(appID: Int, dataSource: SteamDBDataSource? = nil) {
         self.appID = appID
-        self.dataSource = dataSource
+        self.dataSource = dataSource ?? MockSteamDBDataSource()
     }
     
     public func loadDetails() async {
@@ -32,7 +32,7 @@ public class AppDetailViewModel: ObservableObject {
             self.priceHistory = await historyData
             self.playerTrend = await trendData
         } catch {
-            self.errorMessage = "Failed to load details: \(error.localizedDescription)"
+            self.errorMessage = "\(L10n.tr("app_detail.error_load_details", fallback: "Failed to load details")): \(error.localizedDescription)"
         }
         
         isLoading = false

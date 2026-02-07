@@ -25,13 +25,25 @@ public struct RouteDescriptor: Identifiable, Codable, Hashable {
     public let mode: RouteMode
     public let group: RouteGroup
     public let enabled: Bool
+    public let webURLOverride: String?
+    public let fallbackWebURL: String?
 
-    public init(path: String, title: String, mode: RouteMode, group: RouteGroup, enabled: Bool = true) {
+    public init(
+        path: String,
+        title: String,
+        mode: RouteMode,
+        group: RouteGroup,
+        enabled: Bool = true,
+        webURLOverride: String? = nil,
+        fallbackWebURL: String? = nil
+    ) {
         self.path = path
         self.title = title
         self.mode = mode
         self.group = group
         self.enabled = enabled
+        self.webURLOverride = webURLOverride
+        self.fallbackWebURL = fallbackWebURL
     }
 }
 

@@ -13,7 +13,7 @@ public struct PriceHistoryChartView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Text("Price History")
+                Text(L10n.tr("price_chart.title", fallback: "Price History"))
                     .font(.headline)
                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                 
@@ -21,9 +21,10 @@ public struct PriceHistoryChartView: View {
                 
                 if let lowest = history.lowestPrice {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("Lowest")
+                        Text(L10n.tr("price_chart.lowest", fallback: "Lowest"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                        
                         Text(formatPrice(lowest.price))
                             .font(.caption.bold())
                             .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
@@ -40,7 +41,7 @@ public struct PriceHistoryChartView: View {
                         Image(systemName: "chart.line.downtrend.xyaxis")
                             .font(.largeTitle)
                             .foregroundStyle(.secondary)
-                        Text("No price history available")
+                        Text(L10n.tr("price_chart.empty", fallback: "No price history available"))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -140,7 +141,7 @@ public struct PriceHistoryDetailView: View {
                             Text(appName)
                                 .font(.headline)
                                 .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
-                            Text("Price history")
+                            Text(L10n.tr("price_chart.subtitle", fallback: "Price history"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(selectionSummary)
@@ -152,7 +153,7 @@ public struct PriceHistoryDetailView: View {
 
                     GlassCard {
                         if filteredPoints.isEmpty {
-                            Text("No chart data available")
+                            Text(L10n.tr("price_chart.no_chart_data", fallback: "No chart data available"))
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, minHeight: 260)
                         } else {
@@ -222,7 +223,7 @@ public struct PriceHistoryDetailView: View {
                                 .buttonStyle(.plain)
                                 .disabled(zoomIndex == zoomPresets.count - 1)
 
-                                Text("Zoom")
+                                Text(L10n.tr("common.zoom", fallback: "Zoom"))
                                     .font(.subheadline.bold())
                                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
 
@@ -255,7 +256,7 @@ public struct PriceHistoryDetailView: View {
                                 }
                             }
 
-                            Text("Tap or drag on the chart to inspect the exact price at that date.")
+                            Text(L10n.tr("price_chart.hint", fallback: "Tap or drag on the chart to inspect the exact price at that date."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -265,7 +266,7 @@ public struct PriceHistoryDetailView: View {
                 .padding(.bottom, 24)
             }
         }
-        .navigationTitle("Price Chart")
+        .navigationTitle(L10n.tr("price_chart.navigation_title", fallback: "Price Chart"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -290,7 +291,7 @@ public struct PriceHistoryDetailView: View {
     }
 
     private var selectionSummary: String {
-        guard let point = selectedPoint else { return "No price data" }
+        guard let point = selectedPoint else { return L10n.tr("price_chart.no_price_data", fallback: "No price data") }
         let dateText = point.date.formatted(date: .abbreviated, time: .omitted)
         return "\(dateText) • \(formatPrice(point.price))"
     }

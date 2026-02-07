@@ -3,6 +3,7 @@ import XCTest
 
 class MockURLProtocol: URLProtocol {
     static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+    static var requestedURL: URL?
     
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -14,6 +15,7 @@ class MockURLProtocol: URLProtocol {
         }
         
         do {
+            Self.requestedURL = request.url
             let (response, data) = try handler(request)
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             client?.urlProtocol(self, didLoad: data)

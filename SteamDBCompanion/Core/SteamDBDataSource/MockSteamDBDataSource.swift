@@ -54,6 +54,17 @@ public final class MockSteamDBDataSource: SteamDBDataSource {
             SteamApp(id: 570, name: "Dota 2", type: .game, playerStats: PlayerStats(currentPlayers: 600000, peak24h: 700000, allTimePeak: 1200000))
         ]
     }
+
+    public func fetchCollection(kind: CollectionKind) async throws -> [SteamApp] {
+        switch kind {
+        case .charts, .dailyActiveUsers:
+            return try await fetchMostPlayed()
+        case .topRated, .topSellersGlobal, .topSellersWeekly, .mostFollowed, .mostWished, .wishlists:
+            return try await fetchTopSellers()
+        case .sales, .calendar, .pricechanges, .upcoming, .freepackages, .bundles:
+            return try await fetchTrending()
+        }
+    }
     
     public func fetchPriceHistory(appID: Int) async throws -> PriceHistory {
         try? await Task.sleep(nanoseconds: 500_000_000)

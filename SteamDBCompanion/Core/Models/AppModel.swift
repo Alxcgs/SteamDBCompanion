@@ -73,6 +73,7 @@ public struct PriceInfo: Codable, Hashable {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currency
+        formatter.locale = preferredLocale()
         return formatter.string(from: NSNumber(value: current)) ?? "\(currency)\(current)"
     }
     
@@ -81,6 +82,24 @@ public struct PriceInfo: Codable, Hashable {
         self.currency = currency
         self.discountPercent = discountPercent
         self.initial = initial
+    }
+
+    private func preferredLocale() -> Locale {
+        let countryRaw = UserDefaults.standard.string(forKey: "steamStoreCountryCode")?.lowercased() ?? "auto"
+        let languageRaw = UserDefaults.standard.string(forKey: "appLanguageMode")?.lowercased()
+            ?? UserDefaults.standard.string(forKey: "steamStoreLanguageCode")?.lowercased()
+            ?? Locale.current.language.languageCode?.identifier.lowercased()
+            ?? "en"
+
+        if countryRaw == "auto" || countryRaw.count != 2 {
+            if languageRaw.count == 2 {
+                return Locale(identifier: languageRaw)
+            }
+            return .autoupdatingCurrent
+        }
+
+        let identifier = "\(languageRaw)_\(countryRaw.uppercased())"
+        return Locale(identifier: identifier)
     }
 }
 

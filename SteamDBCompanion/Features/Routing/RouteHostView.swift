@@ -17,10 +17,18 @@ public struct RouteHostView: View {
 
     @ViewBuilder
     private var content: some View {
-        if resolution.normalizedPath == "/news" {
-            WebFallbackShellView(url: URL(string: "https://store.steampowered.com/news/")!, title: "Steam News")
-        } else if resolution.descriptor.mode == .webFallback {
-            WebFallbackShellView(path: resolution.normalizedPath, title: resolution.descriptor.title)
+        if resolution.descriptor.mode == .webFallback {
+            let primaryURL = URL(string: resolution.descriptor.webURLOverride ?? "https://steamdb.info\(resolution.normalizedPath)")
+            let fallbackURL = resolution.descriptor.fallbackWebURL.flatMap(URL.init(string:))
+            if let primaryURL {
+                WebFallbackShellView(
+                    url: primaryURL,
+                    title: resolution.descriptor.title,
+                    fallbackURL: fallbackURL
+                )
+            } else {
+                WebFallbackShellView(path: resolution.normalizedPath, title: resolution.descriptor.title)
+            }
         } else if let appID = extractAppID(from: resolution.normalizedPath) {
             AppDetailView(appID: appID, dataSource: dataSource)
         } else if resolution.normalizedPath == "/" {
@@ -59,7 +67,7 @@ private struct NativeRouteCollectionView: View {
                 .ignoresSafeArea()
 
             if isLoading {
-                ProgressView("Loading \(title)...")
+                ProgressView("\(L10n.tr("common.loading", fallback: "Loading...")) \(title)...")
             } else if let errorMessage {
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle")
@@ -72,7 +80,9 @@ private struct NativeRouteCollectionView: View {
                 .padding()
             } else {
                 List(apps) { app in
-                    NavigationLink(value: app) {
+                    NavigationLink {
+                        AppDetailView(appID: app.id, dataSource: dataSource)
+                    } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(app.name)
@@ -87,6 +97,7 @@ private struct NativeRouteCollectionView: View {
                                     .font(.subheadline.bold())
                             }
                         }
+                        .contentShape(Rectangle())
                     }
                 }
                 .scrollContentBackground(.hidden)
@@ -95,26 +106,41 @@ private struct NativeRouteCollectionView: View {
         .task {
             await load()
         }
-        .navigationDestination(for: SteamApp.self) { app in
-            AppDetailView(appID: app.id, dataSource: dataSource)
-        }
     }
 
     private func load() async {
         isLoading = true
+        errorMessage = nil
         defer { isLoading = false }
 
         do {
-            switch routePath {
-            case "/charts", "/dailyactiveusers":
-                apps = try await dataSource.fetchMostPlayed()
-            case "/sales", "/top-rated", "/topsellers/global", "/topsellers/weekly", "/mostfollowed", "/mostwished", "/wishlists":
-                apps = try await dataSource.fetchTopSellers()
-            default:
+            if let kind = collectionKind(for: routePath) {
+                apps = try await dataSource.fetchCollection(kind: kind)
+            } else {
                 apps = try await dataSource.fetchTrending()
             }
         } catch {
-            errorMessage = "Failed to load \(title): \(error.localizedDescription)"
+            errorMessage = "\(L10n.tr("routes.error_load", fallback: "Failed to load")) \(title): \(error.localizedDescription)"
+        }
+    }
+
+    private func collectionKind(for path: String) -> CollectionKind? {
+        switch path {
+        case "/sales": return .sales
+        case "/charts": return .charts
+        case "/calendar": return .calendar
+        case "/pricechanges": return .pricechanges
+        case "/upcoming": return .upcoming
+        case "/freepackages": return .freepackages
+        case "/bundles": return .bundles
+        case "/top-rated": return .topRated
+        case "/topsellers/global": return .topSellersGlobal
+        case "/topsellers/weekly": return .topSellersWeekly
+        case "/mostfollowed": return .mostFollowed
+        case "/mostwished": return .mostWished
+        case "/wishlists": return .wishlists
+        case "/dailyactiveusers": return .dailyActiveUsers
+        default: return nil
         }
     }
 }

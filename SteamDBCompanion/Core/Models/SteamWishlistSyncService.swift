@@ -1,16 +1,48 @@
 import Foundation
 import WebKit
 
-public enum SteamWishlistSyncError: LocalizedError {
+public struct SteamSessionStatus: Sendable {
+    public let isAuthenticated: Bool
+    public let countryCode: String?
+    public let lastError: String?
+
+    public init(isAuthenticated: Bool, countryCode: String? = nil, lastError: String? = nil) {
+        self.isAuthenticated = isAuthenticated
+        self.countryCode = countryCode
+        self.lastError = lastError
+    }
+}
+
+public struct SteamWishlistSyncResult: Sendable {
+    public let appIDs: [Int]
+    public let countryCode: String?
+    public let isAuthenticated: Bool
+    public let timestamp: Date
+
+    public init(appIDs: [Int], countryCode: String?, isAuthenticated: Bool, timestamp: Date) {
+        self.appIDs = appIDs
+        self.countryCode = countryCode
+        self.isAuthenticated = isAuthenticated
+        self.timestamp = timestamp
+    }
+}
+
+public enum SteamWishlistSyncError: LocalizedError, Equatable {
     case notLoggedIn
     case invalidResponse
+    case rateLimited
+    case networkFailure
 
     public var errorDescription: String? {
         switch self {
         case .notLoggedIn:
-            return "Sign in with Steam first, then run sync."
+            return L10n.tr("steam_sync.error_not_logged_in", fallback: "Sign in with Steam first, then run sync.")
         case .invalidResponse:
-            return "Steam did not return wishlist data."
+            return L10n.tr("steam_sync.error_invalid_response", fallback: "Steam did not return wishlist data.")
+        case .rateLimited:
+            return L10n.tr("steam_sync.error_rate_limited", fallback: "Steam temporarily rate-limited this request. Please retry in a moment.")
+        case .networkFailure:
+            return L10n.tr("steam_sync.error_network", fallback: "Network error while contacting Steam.")
         }
     }
 }
@@ -21,17 +53,47 @@ public final class SteamWishlistSyncService {
 
     private init() {}
 
-    public func syncWishlist(into wishlistManager: WishlistManager) async throws -> Int {
+    public func checkSteamSession() async -> SteamSessionStatus {
         let cookies = await loadSteamCookies()
-        guard isLoggedIn(cookies: cookies) else {
+        guard hasSessionCookies(cookies: cookies) else {
+            return SteamSessionStatus(isAuthenticated: false)
+        }
+
+        do {
+            let payload = try await fetchWishlistPayload(cookies: cookies)
+            return SteamSessionStatus(
+                isAuthenticated: true,
+                countryCode: payload.countryCode?.lowercased()
+            )
+        } catch {
+            return SteamSessionStatus(
+                isAuthenticated: false,
+                lastError: error.localizedDescription
+            )
+        }
+    }
+
+    public func syncWishlist() async throws -> SteamWishlistSyncResult {
+        let cookies = await loadSteamCookies()
+        guard hasSessionCookies(cookies: cookies) else {
             throw SteamWishlistSyncError.notLoggedIn
         }
 
         let payload = try await fetchWishlistPayload(cookies: cookies)
-        let wishlistIDs = payload.rgWishlist ?? []
-        wishlistManager.setWishlist(Set(wishlistIDs))
-        applyCountryPreferenceIfAvailable(payload.countryCode)
-        return wishlistIDs.count
+        let normalizedIDs = Array(Set(payload.rgWishlist ?? [])).sorted()
+        return SteamWishlistSyncResult(
+            appIDs: normalizedIDs,
+            countryCode: payload.countryCode?.lowercased(),
+            isAuthenticated: true,
+            timestamp: Date()
+        )
+    }
+
+    public func syncWishlist(into wishlistManager: WishlistManager) async throws -> SteamWishlistSyncResult {
+        let result = try await syncWishlist()
+        wishlistManager.applySyncSuccess(appIDs: Set(result.appIDs), syncedAt: result.timestamp)
+        applyCountryPreferenceIfAvailable(result.countryCode)
+        return result
     }
 
     private func loadSteamCookies() async -> [HTTPCookie] {
@@ -42,10 +104,10 @@ public final class SteamWishlistSyncService {
         }
     }
 
-    private func isLoggedIn(cookies: [HTTPCookie]) -> Bool {
-        cookies.contains { cookie in
-            cookie.name == "steamLoginSecure" && cookie.domain.contains("steam")
-        }
+    private func hasSessionCookies(cookies: [HTTPCookie]) -> Bool {
+        let steamCookies = cookies.filter { $0.domain.contains("steam") }
+        let names = Set(steamCookies.map(\.name))
+        return names.contains("steamLoginSecure") && names.contains("sessionid")
     }
 
     private func fetchWishlistPayload(cookies: [HTTPCookie]) async throws -> SteamUserDataPayload {
@@ -67,16 +129,46 @@ public final class SteamWishlistSyncService {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("SteamDBCompanion-iOS", forHTTPHeaderField: "User-Agent")
 
-        let (data, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw SteamWishlistSyncError.invalidResponse
+            }
+
+            if httpResponse.statusCode == 429 {
+                throw SteamWishlistSyncError.rateLimited
+            }
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                throw SteamWishlistSyncError.invalidResponse
+            }
+
+            let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+            if contentType.contains("text/html") || (httpResponse.url?.path.lowercased().contains("/login") == true) {
+                throw SteamWishlistSyncError.notLoggedIn
+            }
+
+            guard let payload = try? JSONDecoder().decode(SteamUserDataPayload.self, from: data) else {
+                if let text = String(data: data, encoding: .utf8)?.lowercased(),
+                   text.contains("sign in") || text.contains("steamcommunity") || text.contains("login") {
+                    throw SteamWishlistSyncError.notLoggedIn
+                }
+                throw SteamWishlistSyncError.invalidResponse
+            }
+            return SteamUserDataPayload(
+                rgWishlist: Array(Set(payload.rgWishlist ?? [])).sorted(),
+                countryCode: payload.countryCode?.lowercased()
+            )
+        } catch let error as SteamWishlistSyncError {
+            throw error
+        } catch let error as URLError {
+            if error.code == .timedOut || error.code == .cannotFindHost || error.code == .cannotConnectToHost || error.code == .networkConnectionLost || error.code == .notConnectedToInternet {
+                throw SteamWishlistSyncError.networkFailure
+            }
+            throw SteamWishlistSyncError.networkFailure
+        } catch {
             throw SteamWishlistSyncError.invalidResponse
         }
-
-        let payload = try JSONDecoder().decode(SteamUserDataPayload.self, from: data)
-        return SteamUserDataPayload(
-            rgWishlist: Array(Set(payload.rgWishlist ?? [])).sorted(),
-            countryCode: payload.countryCode?.lowercased()
-        )
     }
 
     private func applyCountryPreferenceIfAvailable(_ countryCode: String?) {

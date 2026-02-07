@@ -13,8 +13,8 @@ public class HomeViewModel: ObservableObject {
     private let dataSource: SteamDBDataSource
     private var lastLoadedAt: Date?
     
-    public init(dataSource: SteamDBDataSource = MockSteamDBDataSource()) {
-        self.dataSource = dataSource
+    public init(dataSource: SteamDBDataSource? = nil) {
+        self.dataSource = dataSource ?? MockSteamDBDataSource()
     }
     
     public func loadData() async {
@@ -30,7 +30,7 @@ public class HomeViewModel: ObservableObject {
             self.topSellers = topResult
             self.lastLoadedAt = Date()
         } catch {
-            self.errorMessage = "Failed to load data: \(error.localizedDescription)"
+            self.errorMessage = "\(L10n.tr("home.error_load", fallback: "Failed to load data")): \(error.localizedDescription)"
         }
         
         isLoading = false

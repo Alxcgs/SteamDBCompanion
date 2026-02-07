@@ -2,9 +2,11 @@ import SwiftUI
 
 public struct SettingsView: View {
     @AppStorage("appAppearanceMode") private var appAppearanceModeRaw = AppAppearanceMode.system.rawValue
+    @AppStorage("appLanguageMode") private var appLanguageModeRaw = AppLanguageMode.system.rawValue
     @AppStorage("fullWebsiteModeEnabled") private var fullWebsiteModeEnabled = false
     @AppStorage("steamStoreCountryCode") private var storeCountryCode = "auto"
     @AppStorage("steamStoreLanguageCode") private var storeLanguageCode = "en"
+    @EnvironmentObject private var wishlistManager: WishlistManager
 
     public init() {}
     
@@ -17,7 +19,7 @@ public struct SettingsView: View {
                 VStack(spacing: 24) {
                     // Header
                     HStack {
-                        Text("Settings")
+                        Text(L10n.tr("settings.title", fallback: "Settings"))
                             .font(.largeTitle.bold())
                             .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                         Spacer()
@@ -31,20 +33,27 @@ public struct SettingsView: View {
                             HStack {
                                 Image(systemName: "circle.lefthalf.filled")
                                     .foregroundStyle(LiquidGlassTheme.Colors.neonPrimary)
-                                Text("Appearance")
+                                Text(L10n.tr("settings.appearance", fallback: "Appearance"))
                                     .font(.headline)
                                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                                 Spacer()
                             }
 
-                            Picker("Theme", selection: $appAppearanceModeRaw) {
+                            Picker(L10n.tr("settings.theme", fallback: "Theme"), selection: $appAppearanceModeRaw) {
                                 ForEach(AppAppearanceMode.allCases) { mode in
                                     Text(mode.title).tag(mode.rawValue)
                                 }
                             }
                             .pickerStyle(.segmented)
 
-                            Text("Dark mode uses OLED black.")
+                            Picker(L10n.tr("settings.app_language", fallback: "App Language"), selection: $appLanguageModeRaw) {
+                                ForEach(AppLanguageMode.allCases) { mode in
+                                    Text(mode.title).tag(mode.rawValue)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+
+                            Text(L10n.tr("settings.oled_dark_hint", fallback: "Dark mode uses OLED black."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -57,7 +66,7 @@ public struct SettingsView: View {
                             HStack {
                                 Image(systemName: "globe")
                                     .foregroundStyle(LiquidGlassTheme.Colors.neonPrimary)
-                                Text("Browsing Mode")
+                                Text(L10n.tr("settings.browsing_mode", fallback: "Browsing Mode"))
                                     .font(.headline)
                                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                                 Spacer()
@@ -65,16 +74,16 @@ public struct SettingsView: View {
 
                             Toggle(isOn: $fullWebsiteModeEnabled) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Use full website in app")
+                                    Text(L10n.tr("settings.full_website_toggle", fallback: "Use full website in app"))
                                         .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
-                                    Text("When enabled, Home/Explore open full SteamDB web mode inside the app.")
+                                    Text(L10n.tr("settings.full_website_hint", fallback: "When enabled, Home/Explore open full SteamDB web mode inside the app."))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
                             }
                             .toggleStyle(.switch)
 
-                            Text("Default: disabled (native mode).")
+                            Text(L10n.tr("settings.full_website_default", fallback: "Default: disabled (native mode)."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -87,36 +96,50 @@ public struct SettingsView: View {
                             HStack {
                                 Image(systemName: "person.crop.circle.badge.checkmark")
                                     .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
-                                Text("Steam Account (In-App Web)")
+                                Text(L10n.tr("settings.steam_account", fallback: "Steam Account (In-App Web)"))
                                     .font(.headline)
                                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                                 Spacer()
                             }
 
                             NavigationLink {
-                                WebFallbackShellView(url: URL(string: "https://store.steampowered.com/login/")!, title: "Sign in with Steam")
+                                WebFallbackShellView(url: URL(string: "https://store.steampowered.com/login/")!, title: L10n.tr("steam.sign_in", fallback: "Sign in with Steam"))
                             } label: {
-                                settingsLinkLabel("Sign in with Steam", icon: "person.crop.circle.badge.plus")
+                                settingsLinkLabel(L10n.tr("steam.sign_in", fallback: "Sign in with Steam"), icon: "person.crop.circle.badge.plus")
                             }
                             .buttonStyle(.plain)
 
                             NavigationLink {
-                                WebFallbackShellView(url: URL(string: "https://store.steampowered.com/wishlist/")!, title: "Steam Wishlist")
+                                WebFallbackShellView(url: URL(string: "https://store.steampowered.com/wishlist/")!, title: L10n.tr("wishlist.steam_title", fallback: "Steam Wishlist"))
                             } label: {
-                                settingsLinkLabel("Open Steam Wishlist", icon: "heart.text.square")
+                                settingsLinkLabel(L10n.tr("settings.open_steam_wishlist", fallback: "Open Steam Wishlist"), icon: "heart.text.square")
                             }
                             .buttonStyle(.plain)
 
                             NavigationLink {
-                                WebFallbackShellView(url: URL(string: "https://store.steampowered.com/news/")!, title: "Steam News")
+                                WebFallbackShellView(url: URL(string: "https://store.steampowered.com/news/")!, title: L10n.tr("settings.open_steam_news", fallback: "Open Steam News"))
                             } label: {
-                                settingsLinkLabel("Open Steam News", icon: "newspaper")
+                                settingsLinkLabel(L10n.tr("settings.open_steam_news", fallback: "Open Steam News"), icon: "newspaper")
                             }
                             .buttonStyle(.plain)
 
-                            Text("Personal pages and account currency are shown in web mode after login.")
+                            Text(L10n.tr("settings.steam_account_hint", fallback: "Personal pages and account currency are shown in web mode after login."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+
+                            HStack(spacing: 8) {
+                                Image(systemName: wishlistManager.isSteamSignedIn ? "checkmark.circle.fill" : "xmark.circle")
+                                    .foregroundStyle(wishlistManager.isSteamSignedIn ? LiquidGlassTheme.Colors.neonSuccess : LiquidGlassTheme.Colors.neonWarning)
+                                Text(wishlistManager.isSteamSignedIn ? L10n.tr("wishlist.auth_signed_in", fallback: "Signed in to Steam") : L10n.tr("wishlist.auth_not_signed_in", fallback: "Not signed in"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                if let syncDate = wishlistManager.lastSyncAt {
+                                    Text(syncDate.formatted(date: .numeric, time: .shortened))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -127,14 +150,14 @@ public struct SettingsView: View {
                             HStack {
                                 Image(systemName: "coloncurrencysign.circle")
                                     .foregroundStyle(LiquidGlassTheme.Colors.neonSecondary)
-                                Text("Store Region")
+                                Text(L10n.tr("settings.store_region", fallback: "Store Region"))
                                     .font(.headline)
                                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                                 Spacer()
                             }
 
-                            Picker("Country", selection: $storeCountryCode) {
-                                Text("Auto").tag("auto")
+                            Picker(L10n.tr("settings.country", fallback: "Country"), selection: $storeCountryCode) {
+                                Text(L10n.tr("settings.country_auto", fallback: "Auto")).tag("auto")
                                 Text("US").tag("us")
                                 Text("UA").tag("ua")
                                 Text("PL").tag("pl")
@@ -146,17 +169,21 @@ public struct SettingsView: View {
                             }
                             .pickerStyle(.menu)
 
-                            Picker("Language", selection: $storeLanguageCode) {
-                                Text("English").tag("en")
-                                Text("Ukrainian").tag("uk")
-                                Text("Polish").tag("pl")
-                                Text("German").tag("de")
-                                Text("Turkish").tag("tr")
-                                Text("Japanese").tag("ja")
+                            Picker(L10n.tr("settings.store_content_language", fallback: "Store Content Language"), selection: $storeLanguageCode) {
+                                Text(L10n.tr("language.english", fallback: "English")).tag("en")
+                                Text(L10n.tr("language.ukrainian", fallback: "Ukrainian")).tag("uk")
+                                Text(L10n.tr("language.polish", fallback: "Polish")).tag("pl")
+                                Text(L10n.tr("language.german", fallback: "German")).tag("de")
+                                Text(L10n.tr("language.turkish", fallback: "Turkish")).tag("tr")
+                                Text(L10n.tr("language.japanese", fallback: "Japanese")).tag("ja")
                             }
                             .pickerStyle(.menu)
 
-                            Text("Set this to your Steam account country for matching prices in native screens.")
+                            Text(L10n.tr("settings.store_content_language_hint", fallback: "Affects fetched store content and prices, not the app UI language."))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Text(L10n.tr("settings.store_region_hint", fallback: "Set this to your Steam account country for matching prices in native screens."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -169,20 +196,20 @@ public struct SettingsView: View {
                             HStack {
                                 Image(systemName: "bell.fill")
                                     .foregroundStyle(LiquidGlassTheme.Colors.neonPrimary)
-                                Text("In-App Alerts")
+                                Text(L10n.tr("settings.in_app_alerts", fallback: "In-App Alerts"))
                                     .font(.headline)
                                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                                 Spacer()
                             }
 
-                            Text("Price and player alerts run for wishlisted apps when you refresh or open the app.")
+                            Text(L10n.tr("settings.in_app_alerts_hint", fallback: "Price and player alerts run for wishlisted apps when you refresh or open the app."))
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
 
                             HStack {
-                                Text("Mode")
+                                Text(L10n.tr("settings.mode", fallback: "Mode"))
                                 Spacer()
-                                Text("Free (No APNs)")
+                                Text(L10n.tr("settings.free_mode", fallback: "Free (No APNs)"))
                                     .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
                             }
                             .font(.subheadline)
@@ -196,7 +223,7 @@ public struct SettingsView: View {
                             HStack {
                                 Image(systemName: "info.circle.fill")
                                     .foregroundStyle(LiquidGlassTheme.Colors.neonSecondary)
-                                Text("About")
+                                Text(L10n.tr("settings.about", fallback: "About"))
                                     .font(.headline)
                                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                                 Spacer()
@@ -206,18 +233,18 @@ public struct SettingsView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             
-                            Text("This app is not affiliated with Valve or SteamDB.")
+                            Text(L10n.tr("settings.disclaimer_1", fallback: "This app is not affiliated with Valve or SteamDB."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
-                            Text("SteamDB Companion is unofficial and uses public data only.")
+                            Text(L10n.tr("settings.disclaimer_2", fallback: "SteamDB Companion is unofficial and uses public data only."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
                             NavigationLink {
-                                WebFallbackShellView(path: "/", title: "SteamDB")
+                                WebFallbackShellView(url: URL(string: "https://steamdb.info/")!, title: "SteamDB")
                             } label: {
-                                settingsLinkLabel("Open SteamDB", icon: "safari")
+                                settingsLinkLabel(L10n.tr("settings.open_steamdb", fallback: "Open SteamDB"), icon: "safari")
                             }
                             .buttonStyle(.plain)
                         }
@@ -225,6 +252,19 @@ public struct SettingsView: View {
                     .padding(.horizontal)
                 }
             }
+        }
+        .onChange(of: storeCountryCode) { _, _ in
+            Task { await CacheService.shared.clearCache() }
+        }
+        .onChange(of: storeLanguageCode) { _, _ in
+            Task { await CacheService.shared.clearCache() }
+        }
+        .onChange(of: appLanguageModeRaw) { _, _ in
+            // UI language is independent from store content language.
+        }
+        .task {
+            let session = await SteamWishlistSyncService.shared.checkSteamSession()
+            wishlistManager.setSteamAuthState(session.isAuthenticated ? .signedIn : .notSignedIn)
         }
     }
 

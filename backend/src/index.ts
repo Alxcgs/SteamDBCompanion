@@ -14,6 +14,8 @@ interface RouteDescriptor {
   mode: RouteMode;
   group: RouteGroup;
   enabled: boolean;
+  webURLOverride?: string;
+  fallbackWebURL?: string;
 }
 
 interface GatewayApp {
@@ -47,7 +49,7 @@ const ROUTES: RouteDescriptor[] = [
   { path: "/", title: "Home", mode: "native", group: "home", enabled: true },
   { path: "/search", title: "Search", mode: "native", group: "search", enabled: true },
   { path: "/instantsearch", title: "Instant Search", mode: "native", group: "search", enabled: true },
-  { path: "/app/:id", title: "App Overview", mode: "native", group: "app", enabled: true },
+  { path: "/app/:id", title: "Game Details", mode: "native", group: "app", enabled: true },
   { path: "/app/:id/charts", title: "App Charts", mode: "native", group: "charts", enabled: true },
   { path: "/sales", title: "Sales", mode: "native", group: "sales", enabled: true },
   { path: "/charts", title: "Charts", mode: "native", group: "charts", enabled: true },
@@ -66,8 +68,48 @@ const ROUTES: RouteDescriptor[] = [
   { path: "/calculator", title: "Calculator", mode: "webFallback", group: "utility", enabled: true },
   { path: "/tags", title: "Tags", mode: "webFallback", group: "utility", enabled: true },
   { path: "/patchnotes", title: "Patch Notes", mode: "webFallback", group: "utility", enabled: true },
-  { path: "/events", title: "Events", mode: "webFallback", group: "utility", enabled: true },
-  { path: "/year", title: "Year in Review", mode: "webFallback", group: "utility", enabled: true },
+  {
+    path: "/events",
+    title: "Events",
+    mode: "webFallback",
+    group: "utility",
+    enabled: true,
+    webURLOverride: "https://steamdb.info/sales/history/",
+    fallbackWebURL: "https://store.steampowered.com/news/"
+  },
+  {
+    path: "/year",
+    title: "Year in Review",
+    mode: "webFallback",
+    group: "utility",
+    enabled: true,
+    webURLOverride: "https://steamdb.info/stats/releases/",
+    fallbackWebURL: "https://store.steampowered.com/replay/"
+  },
+  {
+    path: "/login",
+    title: "Steam Login",
+    mode: "webFallback",
+    group: "utility",
+    enabled: true,
+    webURLOverride: "https://store.steampowered.com/login/"
+  },
+  {
+    path: "/wishlist",
+    title: "Steam Wishlist",
+    mode: "webFallback",
+    group: "utility",
+    enabled: true,
+    webURLOverride: "https://store.steampowered.com/wishlist/"
+  },
+  {
+    path: "/news",
+    title: "Steam News",
+    mode: "webFallback",
+    group: "utility",
+    enabled: true,
+    webURLOverride: "https://store.steampowered.com/news/"
+  },
   { path: "/developer/:id", title: "Developer", mode: "webFallback", group: "entities", enabled: true },
   { path: "/publisher/:id", title: "Publisher", mode: "webFallback", group: "entities", enabled: true },
   { path: "/sub/:id", title: "Package", mode: "webFallback", group: "entities", enabled: true },
@@ -110,6 +152,7 @@ export default {
 
       const url = new URL(request.url);
       const pathname = normalizePath(url.pathname);
+      const localeQuery = getLocaleQuery(url);
 
       if (request.method === "GET" && pathname === "/v1/health") {
         return json(env, {
@@ -125,8 +168,8 @@ export default {
 
       if (request.method === "GET" && pathname === "/v1/home") {
         return await cachedJSON(env, "home", CACHE_TTL.home, async () => {
-          const html = await fetchSteamDB(env, "/");
-          const parsed = parseAppsFromHtml(html);
+          const html = await fetchSteamDB(env, "/", localeQuery);
+          const parsed = parseAppsFromHtml(html, currencyForLocale(localeQuery));
           return {
             trending: parsed.slice(0, 20),
             topSellers: parsed.slice(0, 20),
@@ -146,10 +189,11 @@ export default {
         return await cachedJSON(env, `search:${query}:${page}`, CACHE_TTL.search, async () => {
           const html = await fetchSteamDB(env, "/search/", [
             ["q", query],
-            ["a", "app"]
+            ["a", "app"],
+            ...localeQuery
           ]);
           return {
-            results: parseAppsFromHtml(html),
+            results: parseAppsFromHtml(html, currencyForLocale(localeQuery)),
             page,
             total: null,
             stale: false
@@ -161,8 +205,8 @@ export default {
       if (request.method === "GET" && appOverviewMatch) {
         const appID = Number.parseInt(appOverviewMatch[1], 10);
         return await cachedJSON(env, `app:${appID}:overview`, CACHE_TTL.app, async () => {
-          const html = await fetchSteamDB(env, `/app/${appID}/`);
-          const app = parseAppOverview(html, appID);
+          const html = await fetchSteamDB(env, `/app/${appID}/`, localeQuery);
+          const app = parseAppOverview(html, appID, currencyForLocale(localeQuery));
           return { app, stale: false };
         });
       }
@@ -172,8 +216,8 @@ export default {
         const appID = Number.parseInt(appChartsMatch[1], 10);
         const range = (url.searchParams.get("range") || "month").toLowerCase();
         return await cachedJSON(env, `app:${appID}:charts:${range}`, CACHE_TTL.charts, async () => {
-          const html = await fetchSteamDB(env, `/app/${appID}/charts/`);
-          const parsed = parseChartPayload(html, appID);
+          const html = await fetchSteamDB(env, `/app/${appID}/charts/`, localeQuery);
+          const parsed = parseChartPayload(html, appID, currencyForLocale(localeQuery));
           return { ...parsed, stale: false };
         });
       }
@@ -187,10 +231,10 @@ export default {
         }
 
         return await cachedJSON(env, `collection:${kind}`, CACHE_TTL.collection, async () => {
-          const html = await fetchSteamDB(env, steamRoute);
+          const html = await fetchSteamDB(env, steamRoute, localeQuery);
           return {
             kind,
-            items: parseAppsFromHtml(html),
+            items: parseAppsFromHtml(html, currencyForLocale(localeQuery)),
             stale: false
           };
         });
@@ -303,6 +347,21 @@ function addStaleFlag<T>(value: T): T {
   return value;
 }
 
+function getLocaleQuery(url: URL): Array<[string, string]> {
+  const cc = (url.searchParams.get("cc") || "").trim().toLowerCase();
+  const language = (url.searchParams.get("l") || "").trim().toLowerCase();
+  const entries: Array<[string, string]> = [];
+
+  if (cc.length === 2) {
+    entries.push(["cc", cc]);
+  }
+  if (language.length === 2) {
+    entries.push(["l", language]);
+  }
+
+  return entries;
+}
+
 async function fetchSteamDB(
   env: Env,
   path: string,
@@ -332,7 +391,7 @@ async function fetchSteamDB(
   return await response.text();
 }
 
-function parseAppsFromHtml(html: string): GatewayApp[] {
+function parseAppsFromHtml(html: string, defaultCurrency: string): GatewayApp[] {
   const rows = Array.from(html.matchAll(/<tr[^>]*data-appid="(\d+)"[^>]*>([\s\S]*?)<\/tr>/gi));
   const results: GatewayApp[] = [];
   const seen = new Set<number>();
@@ -346,14 +405,14 @@ function parseAppsFromHtml(html: string): GatewayApp[] {
     const rowHtml = row[2];
     const linkMatch = rowHtml.match(/<a[^>]*href="\/app\/\d+\/"[^>]*>([\s\S]*?)<\/a>/i);
     const name = cleanupText(linkMatch ? linkMatch[1] : `App ${appID}`);
-    const price = parsePrice(rowHtml);
+    const price = parsePrice(rowHtml, defaultCurrency);
 
     results.push({
       id: appID,
       name,
       type: "game",
       currentPrice: price?.value ?? null,
-      currency: price ? "USD" : null,
+      currency: price?.currency ?? null,
       discountPercent: parseDiscount(rowHtml),
       initialPrice: price?.value ?? null,
       platforms: ["windows"],
@@ -400,10 +459,10 @@ function parseAppsFromHtml(html: string): GatewayApp[] {
   return results;
 }
 
-function parseAppOverview(html: string, appID: number): GatewayApp {
+function parseAppOverview(html: string, appID: number, defaultCurrency: string): GatewayApp {
   const titleMatch = html.match(/<h1[^>]*itemprop="name"[^>]*>([\s\S]*?)<\/h1>/i);
   const name = cleanupText(titleMatch ? titleMatch[1] : `App ${appID}`);
-  const price = parsePrice(html);
+  const price = parsePrice(html, defaultCurrency);
   const players = parseFirstNumber(html);
 
   return {
@@ -411,7 +470,7 @@ function parseAppOverview(html: string, appID: number): GatewayApp {
     name,
     type: "game",
     currentPrice: price?.value ?? null,
-    currency: price ? "USD" : null,
+    currency: price?.currency ?? null,
     discountPercent: parseDiscount(html),
     initialPrice: price?.value ?? null,
     platforms: parsePlatforms(html),
@@ -423,7 +482,7 @@ function parseAppOverview(html: string, appID: number): GatewayApp {
   };
 }
 
-function parseChartPayload(html: string, appID: number) {
+function parseChartPayload(html: string, appID: number, defaultCurrency: string) {
   const prices: Array<{ date: string; price: number; discount: number }> = [];
   const playerTrend: Array<{ date: string; players: number }> = [];
 
@@ -441,7 +500,7 @@ function parseChartPayload(html: string, appID: number) {
 
   return {
     appID,
-    currency: "USD",
+    currency: defaultCurrency,
     priceHistory: prices,
     playerTrend,
     stale: false
@@ -481,22 +540,88 @@ function parseDiscount(text: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-function parsePrice(text: string): { value: number } | null {
+function parsePrice(text: string, defaultCurrency: string): { value: number; currency: string } | null {
   if (/free/i.test(text)) {
     return null;
   }
 
-  const match = text.match(/[$€£]\s*([0-9]+(?:\.[0-9]{1,2})?)/);
-  if (!match) {
+  const normalized = cleanupText(text).replace(/\s+/g, " ").trim();
+  const match = normalized.match(/([0-9]{1,3}(?:[ .,\u00A0][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)/);
+  if (!match || !match[1]) {
     return null;
   }
 
-  const value = Number.parseFloat(match[1]);
+  const rawNumber = match[1].replace(/\u00A0/g, " ").replace(/\s/g, "");
+  const value = parseLocalizedNumber(rawNumber);
   if (!Number.isFinite(value)) {
     return null;
   }
 
-  return { value };
+  const codeMatch = normalized.match(/\b(USD|EUR|UAH|GBP|PLN|TRY|BRL|JPY|RUB|CNY|KRW)\b/i);
+  let currency = codeMatch ? codeMatch[1].toUpperCase() : symbolCurrency(normalized);
+  if (!currency) {
+    currency = defaultCurrency;
+  }
+
+  return { value, currency };
+}
+
+function parseLocalizedNumber(value: string): number {
+  const hasComma = value.includes(",");
+  const hasDot = value.includes(".");
+  if (hasComma && hasDot) {
+    const commaIndex = value.lastIndexOf(",");
+    const dotIndex = value.lastIndexOf(".");
+    const decimalSeparator = commaIndex > dotIndex ? "," : ".";
+    const normalized = decimalSeparator === ","
+      ? value.replaceAll(".", "").replace(",", ".")
+      : value.replaceAll(",", "");
+    return Number.parseFloat(normalized);
+  }
+
+  if (hasComma) {
+    const decimalLike = /,\d{1,2}$/.test(value);
+    const normalized = decimalLike ? value.replace(",", ".") : value.replaceAll(",", "");
+    return Number.parseFloat(normalized);
+  }
+
+  return Number.parseFloat(value);
+}
+
+function symbolCurrency(value: string): string | null {
+  if (value.includes("₴")) return "UAH";
+  if (value.includes("€")) return "EUR";
+  if (value.includes("£")) return "GBP";
+  if (value.includes("¥")) return "JPY";
+  if (value.includes("₽")) return "RUB";
+  if (value.includes("₺")) return "TRY";
+  if (value.includes("R$")) return "BRL";
+  if (value.includes("$")) return "USD";
+  return null;
+}
+
+function currencyForLocale(localeQuery: Array<[string, string]>): string {
+  const country = localeQuery.find(([key]) => key === "cc")?.[1]?.toLowerCase();
+  switch (country) {
+    case "ua": return "UAH";
+    case "pl": return "PLN";
+    case "de":
+    case "fr":
+    case "it":
+    case "es":
+    case "nl":
+    case "pt":
+    case "fi":
+    case "at":
+    case "be":
+      return "EUR";
+    case "gb": return "GBP";
+    case "jp": return "JPY";
+    case "tr": return "TRY";
+    case "br": return "BRL";
+    case "ru": return "RUB";
+    default: return "USD";
+  }
 }
 
 function parseFirstNumber(text: string): number | null {

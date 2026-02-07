@@ -15,6 +15,9 @@ public protocol SteamDBDataSource {
     
     /// Fetches most played games.
     func fetchMostPlayed() async throws -> [SteamApp]
+
+    /// Fetches apps for a specific collection route.
+    func fetchCollection(kind: CollectionKind) async throws -> [SteamApp]
     
     /// Fetches price history for a specific app.
     func fetchPriceHistory(appID: Int) async throws -> PriceHistory

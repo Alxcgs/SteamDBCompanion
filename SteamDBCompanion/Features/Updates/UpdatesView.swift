@@ -23,27 +23,27 @@ public struct UpdatesView: View {
                 .ignoresSafeArea()
 
             if viewModel.isLoading {
-                ProgressView("Checking updates...")
+                ProgressView(L10n.tr("updates.loading", fallback: "Checking updates..."))
             } else {
                 List {
                     if let error = viewModel.errorMessage, !error.isEmpty {
-                        Section("Status") {
+                        Section(L10n.tr("updates.status_section", fallback: "Status")) {
                             Text(error)
                                 .foregroundStyle(LiquidGlassTheme.Colors.neonError)
                         }
                     }
 
                     if !alertEngine.latestDiffs.isEmpty {
-                        Section("New Changes") {
+                        Section(L10n.tr("updates.new_changes", fallback: "New Changes")) {
                             ForEach(alertEngine.latestDiffs) { diff in
                                 DiffRow(diff: diff)
                             }
                         }
                     }
 
-                    Section("History") {
+                    Section(L10n.tr("updates.history_section", fallback: "History")) {
                         if alertEngine.history.isEmpty {
-                            Text("No changes detected yet.")
+                            Text(L10n.tr("updates.no_changes", fallback: "No changes detected yet."))
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(alertEngine.history) { diff in
@@ -52,9 +52,9 @@ public struct UpdatesView: View {
                         }
                     }
 
-                    Section("Tracked Apps") {
+                    Section(L10n.tr("updates.tracked_apps", fallback: "Tracked Apps")) {
                         if viewModel.trackedApps.isEmpty {
-                            Text("Add apps to your wishlist to track updates.")
+                            Text(L10n.tr("updates.tracked_apps_empty", fallback: "Add apps to your wishlist to track updates."))
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(viewModel.trackedApps) { app in
@@ -72,35 +72,38 @@ public struct UpdatesView: View {
                         }
                     }
 
-                    Section("Steam News") {
-                        if viewModel.steamNews.isEmpty {
-                            Text("No news loaded yet. Pull to refresh.")
+                    Section(L10n.tr("updates.wishlist_news", fallback: "Wishlist News")) {
+                        if viewModel.wishlistNews.isEmpty {
+                            Text(L10n.tr("updates.wishlist_news_empty", fallback: "No wishlist-specific news yet. Sign in and sync wishlist to get personalized updates."))
                                 .foregroundStyle(.secondary)
                         } else {
-                            ForEach(viewModel.steamNews) { item in
+                            ForEach(viewModel.wishlistNews) { item in
                                 NavigationLink {
-                                    WebFallbackShellView(url: item.url, title: "Steam News")
+                                    WebFallbackShellView(url: item.url, title: L10n.tr("updates.wishlist_news", fallback: "Wishlist News"))
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text(item.title)
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
-                                            .lineLimit(2)
-
-                                        if let publishedAt = item.publishedAt {
-                                            Text(publishedAt, style: .date)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                    .padding(.vertical, 2)
+                                    newsRow(item: item)
                                 }
                             }
                         }
                     }
 
-                    Section("Background Policy") {
-                        Text("This build uses free in-app alerts without APNs. Updates are checked on refresh/open.")
+                    Section(L10n.tr("updates.steam_news", fallback: "Steam News")) {
+                        if viewModel.steamNews.isEmpty {
+                            Text(L10n.tr("updates.news_empty", fallback: "No news loaded yet. Pull to refresh."))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(viewModel.steamNews) { item in
+                                NavigationLink {
+                                    WebFallbackShellView(url: item.url, title: L10n.tr("updates.steam_news", fallback: "Steam News"))
+                                } label: {
+                                    newsRow(item: item)
+                                }
+                            }
+                        }
+                    }
+
+                    Section(L10n.tr("updates.background_policy", fallback: "Background Policy")) {
+                        Text(L10n.tr("updates.background_policy_text", fallback: "This build uses free in-app alerts without APNs. Updates are checked on refresh/open."))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -111,27 +114,27 @@ public struct UpdatesView: View {
                 }
             }
         }
-        .navigationTitle("Updates")
+        .navigationTitle(L10n.tr("updates.title", fallback: "Updates"))
         .navigationDestination(for: SteamApp.self) { app in
             AppDetailView(appID: app.id, dataSource: dataSource)
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Refresh") {
+                Button(L10n.tr("common.refresh", fallback: "Refresh")) {
                     Task { await viewModel.refresh() }
                 }
             }
 
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
-                    WebFallbackShellView(url: URL(string: "https://store.steampowered.com/news/")!, title: "Steam News")
+                    WebFallbackShellView(url: URL(string: "https://store.steampowered.com/news/")!, title: L10n.tr("updates.steam_news", fallback: "Steam News"))
                 } label: {
                     Image(systemName: "newspaper")
                 }
             }
 
             ToolbarItem(placement: .topBarLeading) {
-                Button("Clear") {
+                Button(L10n.tr("common.clear", fallback: "Clear")) {
                     alertEngine.clearHistory()
                 }
             }
@@ -139,6 +142,36 @@ public struct UpdatesView: View {
         .task {
             await viewModel.refresh()
         }
+    }
+}
+
+private extension UpdatesView {
+    @ViewBuilder
+    func newsRow(item: SteamNewsItem) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(item.title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                .lineLimit(2)
+
+            HStack(spacing: 8) {
+                if let publishedAt = item.publishedAt {
+                    Text(publishedAt, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let appID = item.appID {
+                    Text("#\(appID)")
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(Capsule())
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
@@ -170,17 +203,21 @@ private struct DiffRow: View {
 
     private var label: String {
         switch diff.type {
-        case .priceDrop: return "Price Drop"
-        case .priceRise: return "Price Rise"
-        case .playerSpike: return "Player Spike"
-        case .playerDrop: return "Player Drop"
-        case .unknown: return "Update"
+        case .priceDrop: return L10n.tr("updates.diff.price_drop", fallback: "Price Drop")
+        case .priceRise: return L10n.tr("updates.diff.price_rise", fallback: "Price Rise")
+        case .playerSpike: return L10n.tr("updates.diff.player_spike", fallback: "Player Spike")
+        case .playerDrop: return L10n.tr("updates.diff.player_drop", fallback: "Player Drop")
+        case .unknown: return L10n.tr("updates.diff.update", fallback: "Update")
         }
     }
 
     private func formatted(_ value: Double) -> String {
         if diff.type == .priceDrop || diff.type == .priceRise {
-            return String(format: "$%.2f", value)
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .decimal
+            formatter.minimumFractionDigits = 0
+            formatter.maximumFractionDigits = 2
+            return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
         }
         return "\(Int(value))"
     }

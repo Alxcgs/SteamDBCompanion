@@ -55,21 +55,23 @@ public actor HTTPSteamDBGatewayClient: SteamDBGatewayClient {
     }
 
     public func fetchHome() async throws -> HomePayload {
-        try await request(path: "/v1/home")
+        try await request(path: "/v1/home", queryItems: localeQueryItems())
     }
 
     public func search(query: String, page: Int) async throws -> SearchPayload {
-        try await request(
+        var items: [URLQueryItem] = [
+            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "page", value: "\(page)")
+        ]
+        items.append(contentsOf: localeQueryItems())
+        return try await request(
             path: "/v1/search",
-            queryItems: [
-                URLQueryItem(name: "q", value: query),
-                URLQueryItem(name: "page", value: "\(page)")
-            ]
+            queryItems: items
         )
     }
 
     public func fetchAppOverview(appID: Int) async throws -> AppOverviewPayload {
-        try await request(path: "/v1/apps/\(appID)/overview")
+        try await request(path: "/v1/apps/\(appID)/overview", queryItems: localeQueryItems())
     }
 
     public func fetchAppCharts(appID: Int, range: ChartRange) async throws -> AppChartsPayload {
@@ -80,7 +82,7 @@ public actor HTTPSteamDBGatewayClient: SteamDBGatewayClient {
     }
 
     public func fetchCollection(kind: CollectionKind) async throws -> CollectionPayload {
-        try await request(path: "/v1/collections/\(kind.rawValue)")
+        try await request(path: "/v1/collections/\(kind.rawValue)", queryItems: localeQueryItems())
     }
 
     public func fetchWatchlist(installationID: String) async throws -> WatchlistPayload {
@@ -142,5 +144,36 @@ public actor HTTPSteamDBGatewayClient: SteamDBGatewayClient {
         } catch {
             throw GatewayClientError.decodingFailed
         }
+    }
+
+    private func localeQueryItems() -> [URLQueryItem] {
+        let country = storeCountryCode()
+        let language = storeLanguageCode()
+        return [
+            URLQueryItem(name: "cc", value: country),
+            URLQueryItem(name: "l", value: language)
+        ]
+    }
+
+    private func storeCountryCode() -> String {
+        let saved = UserDefaults.standard.string(forKey: "steamStoreCountryCode")?.lowercased() ?? "auto"
+        if saved != "auto", saved.count == 2 {
+            return saved
+        }
+        let localeCode = Locale.current.region?.identifier.lowercased() ?? "us"
+        return localeCode.count == 2 ? localeCode : "us"
+    }
+
+    private func storeLanguageCode() -> String {
+        if let appLanguage = UserDefaults.standard.string(forKey: "appLanguageMode"),
+           appLanguage.count == 2 {
+            return appLanguage.lowercased()
+        }
+        let saved = UserDefaults.standard.string(forKey: "steamStoreLanguageCode")?.lowercased() ?? "en"
+        if saved.count == 2 {
+            return saved
+        }
+        let localeLanguage = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+        return localeLanguage.count == 2 ? localeLanguage : "en"
     }
 }

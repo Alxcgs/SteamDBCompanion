@@ -36,7 +36,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
 
     public func searchApps(query: String) async throws -> [SteamApp] {
         do {
-            let result = try await repository.fetch(cacheKey: "search_\(query)_1_\(cacheSchemaVersion)", expiration: 600) {
+            let result = try await repository.fetch(
+                cacheKey: "search_\(query)_1_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                expiration: 600
+            ) {
                 try await self.gateway.search(query: query, page: 1)
             }
             return uniqueApps(result.value.results.map(\.asSteamApp))
@@ -47,7 +50,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     
     public func fetchAppDetails(appID: Int) async throws -> SteamApp {
         do {
-            let result = try await repository.fetch(cacheKey: "app_details_\(appID)_\(cacheSchemaVersion)", expiration: 1800) {
+            let result = try await repository.fetch(
+                cacheKey: "app_details_\(appID)_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                expiration: 1800
+            ) {
                 try await self.gateway.fetchAppOverview(appID: appID)
             }
             let app = result.value.app.asSteamApp
@@ -60,7 +66,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     
     public func fetchTrending() async throws -> [SteamApp] {
         do {
-            let result = try await repository.fetch(cacheKey: "home_payload_\(cacheSchemaVersion)", expiration: 900) {
+            let result = try await repository.fetch(
+                cacheKey: "home_payload_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                expiration: 900
+            ) {
                 try await self.gateway.fetchHome()
             }
             return uniqueApps(result.value.trending.map(\.asSteamApp))
@@ -71,7 +80,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     
     public func fetchTopSellers() async throws -> [SteamApp] {
         do {
-            let result = try await repository.fetch(cacheKey: "home_payload_\(cacheSchemaVersion)", expiration: 900) {
+            let result = try await repository.fetch(
+                cacheKey: "home_payload_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                expiration: 900
+            ) {
                 try await self.gateway.fetchHome()
             }
             let gatewayTopSellers = result.value.topSellers.map(\.asSteamApp)
@@ -95,7 +107,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     
     public func fetchMostPlayed() async throws -> [SteamApp] {
         do {
-            let result = try await repository.fetch(cacheKey: "home_payload_\(cacheSchemaVersion)", expiration: 900) {
+            let result = try await repository.fetch(
+                cacheKey: "home_payload_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                expiration: 900
+            ) {
                 try await self.gateway.fetchHome()
             }
             if !result.value.mostPlayed.isEmpty {
@@ -106,7 +121,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
         }
 
         do {
-            let result = try await repository.fetch(cacheKey: "collection_daily_active_users_\(cacheSchemaVersion)", expiration: 900) {
+            let result = try await repository.fetch(
+                cacheKey: "collection_daily_active_users_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                expiration: 900
+            ) {
                 try await self.gateway.fetchCollection(kind: .dailyActiveUsers)
             }
             return uniqueApps(result.value.items.map(\.asSteamApp))
@@ -118,11 +136,39 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
             return uniqueApps(await fallbackTrending())
         }
     }
+
+    public func fetchCollection(kind: CollectionKind) async throws -> [SteamApp] {
+        do {
+            let result = try await repository.fetch(
+                cacheKey: "collection_\(kind.rawValue)_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                expiration: collectionTTL(for: kind)
+            ) {
+                try await self.gateway.fetchCollection(kind: kind)
+            }
+
+            let items = uniqueApps(result.value.items.map(\.asSteamApp))
+            if !items.isEmpty {
+                if kind == .topSellersGlobal || kind == .topSellersWeekly {
+                    let extendedTopSellers = await fetchStoreTopSellersExtended(limit: 30)
+                    let merged = uniqueApps(items + extendedTopSellers)
+                    return Array(merged.prefix(30))
+                }
+                return items
+            }
+        } catch {
+            // Continue to semantic fallback.
+        }
+
+        return try await fallbackCollection(kind: kind)
+    }
     
     public func fetchPriceHistory(appID: Int) async throws -> PriceHistory {
         for range in [ChartRange.all, .year, .month] {
             do {
-                let result = try await repository.fetch(cacheKey: "app_charts_\(appID)_\(range.rawValue)_\(cacheSchemaVersion)", expiration: 900) {
+                let result = try await repository.fetch(
+                    cacheKey: "app_charts_\(appID)_\(range.rawValue)_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                    expiration: 900
+                ) {
                     try await self.gateway.fetchAppCharts(appID: appID, range: range)
                 }
                 if !result.value.priceHistory.isEmpty {
@@ -138,7 +184,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     public func fetchPlayerTrend(appID: Int) async throws -> PlayerTrend {
         for range in [ChartRange.month, .week, .day] {
             do {
-                let result = try await repository.fetch(cacheKey: "app_charts_\(appID)_\(range.rawValue)_\(cacheSchemaVersion)", expiration: 900) {
+                let result = try await repository.fetch(
+                    cacheKey: "app_charts_\(appID)_\(range.rawValue)_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                    expiration: 900
+                ) {
                     try await self.gateway.fetchAppCharts(appID: appID, range: range)
                 }
                 if !result.value.playerTrend.isEmpty {
@@ -149,6 +198,32 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
             }
         }
         return await fallbackPlayerTrend(appID: appID)
+    }
+
+    private func fallbackCollection(kind: CollectionKind) async throws -> [SteamApp] {
+        switch kind {
+        case .charts, .dailyActiveUsers:
+            return try await fetchMostPlayed()
+        case .topSellersGlobal, .topSellersWeekly, .topRated, .mostFollowed, .mostWished, .wishlists:
+            return try await fetchTopSellers()
+        case .sales, .calendar, .pricechanges, .upcoming, .freepackages, .bundles:
+            let trending = try await fetchTrending()
+            if !trending.isEmpty {
+                return trending
+            }
+            return try await fetchTopSellers()
+        }
+    }
+
+    private func collectionTTL(for kind: CollectionKind) -> TimeInterval {
+        switch kind {
+        case .topSellersGlobal, .topSellersWeekly, .topRated, .mostFollowed, .mostWished, .wishlists:
+            return 180
+        case .charts, .dailyActiveUsers:
+            return 180
+        case .sales, .calendar, .pricechanges, .upcoming, .freepackages, .bundles:
+            return 300
+        }
     }
 
     private func fallbackSearch(query: String) async throws -> [SteamApp] {
@@ -164,7 +239,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
 
         if let searchURL = components?.url {
             do {
-                let payload = try await repository.fetch(cacheKey: "store_search_\(trimmed)_1_\(cacheSchemaVersion)", expiration: 300) {
+                let payload = try await repository.fetch(
+                    cacheKey: "store_search_\(trimmed)_1_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                    expiration: 300
+                ) {
                     try await self.networking.fetch(url: searchURL, type: StoreSearchPayload.self)
                 }
                 let searchResults = payload.value.items
@@ -185,7 +263,7 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     }
 
     private func fallbackAppDetails(appID: Int) async throws -> SteamApp {
-        let cacheKey = "legacy_app_details_\(appID)_\(cacheSchemaVersion)"
+        let cacheKey = "legacy_app_details_\(appID)_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)"
         if let cached = await CacheService.shared.load(key: cacheKey, type: SteamApp.self, expiration: 86_400) {
             return cached
         }
@@ -199,7 +277,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
 
         if let detailsURL = components?.url {
             do {
-                let response = try await repository.fetch(cacheKey: "store_app_details_\(appID)_\(cacheSchemaVersion)", expiration: 1800) {
+                let response = try await repository.fetch(
+                    cacheKey: "store_app_details_\(appID)_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                    expiration: 1800
+                ) {
                     try await self.networking.fetch(url: detailsURL, type: [String: StoreAppDetailsEntry].self)
                 }
 
@@ -242,7 +323,7 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     }
 
     private func fallbackPriceHistory(appID: Int) async -> PriceHistory {
-        let cacheKey = "legacy_price_history_\(appID)_\(cacheSchemaVersion)"
+        let cacheKey = "legacy_price_history_\(appID)_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)"
         let cached = await CacheService.shared.load(key: cacheKey, type: PriceHistory.self, expiration: .greatestFiniteMagnitude)
         var points = cached?.points ?? []
         var currency = cached?.currency ?? "USD"
@@ -291,7 +372,7 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     }
 
     private func fallbackTrending() async -> [SteamApp] {
-        let cacheKey = "legacy_trending_\(cacheSchemaVersion)"
+        let cacheKey = "legacy_trending_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)"
         if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamApp].self, expiration: 3600) {
             return cached
         }
@@ -320,7 +401,7 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     }
 
     private func fallbackTopSellers() async -> [SteamApp] {
-        let cacheKey = "legacy_top_sellers_\(cacheSchemaVersion)"
+        let cacheKey = "legacy_top_sellers_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)"
         if let cached = await CacheService.shared.load(key: cacheKey, type: [SteamApp].self, expiration: 3600) {
             return cached
         }
@@ -440,7 +521,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
 
         let appToken = appIDs.prefix(20).map(String.init).joined(separator: "-")
         do {
-            let response = try await repository.fetch(cacheKey: "store_app_details_batch_\(appToken)_\(cacheSchemaVersion)", expiration: 600) {
+            let response = try await repository.fetch(
+                cacheKey: "store_app_details_batch_\(appToken)_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                expiration: 600
+            ) {
                 try await self.networking.fetch(url: url, type: [String: StoreAppDetailsEntry].self)
             }
 
@@ -755,7 +839,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
         guard let detailsURL = components?.url else { return nil }
 
         do {
-            let response = try await repository.fetch(cacheKey: "store_price_snapshot_\(appID)_\(cacheSchemaVersion)", expiration: 1800) {
+            let response = try await repository.fetch(
+                cacheKey: "store_price_snapshot_\(appID)_\(cacheSchemaVersion)_\(storeCountryCode)_\(storeLanguageCode)",
+                expiration: 1800
+            ) {
                 try await self.networking.fetch(url: detailsURL, type: [String: StoreAppDetailsEntry].self)
             }
             guard
@@ -796,6 +883,10 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     }
 
     private var storeLanguageCode: String {
+        if let appLanguage = UserDefaults.standard.string(forKey: "appLanguageMode")?.lowercased(),
+           appLanguage == "en" || appLanguage == "uk" {
+            return appLanguage
+        }
         let saved = UserDefaults.standard.string(forKey: "steamStoreLanguageCode")?.lowercased() ?? "en"
         if saved.count == 2 {
             return saved

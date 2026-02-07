@@ -5,9 +5,10 @@ public struct AppDetailView: View {
     @EnvironmentObject var wishlistManager: WishlistManager
     @Environment(\.openURL) private var openURL
     @StateObject private var viewModel: AppDetailViewModel
-    @State private var showStoreDestinationDialog = false
+    @State private var showStoreDestinationSheet = false
     @State private var openStoreInApp = false
     @State private var storeURL: URL?
+    @State private var inAppWebTitle = "Steam"
     
     public init(appID: Int, dataSource: SteamDBDataSource) {
         _viewModel = StateObject(wrappedValue: AppDetailViewModel(appID: appID, dataSource: dataSource))
@@ -109,16 +110,32 @@ public struct AppDetailView: View {
                             
                             // Stats Grid
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                                StatCard(title: "Current Players", value: app.playerStats.map { Self.formatStatValue($0.currentPlayers) } ?? "—", icon: "person.2.fill")
-                                StatCard(title: "24h Peak", value: app.playerStats.map { Self.formatStatValue($0.peak24h) } ?? "—", icon: "chart.bar.fill")
-                                StatCard(title: "All-Time Peak", value: app.playerStats.map { Self.formatStatValue($0.allTimePeak) } ?? "—", icon: "trophy.fill")
-                                StatCard(title: "App ID", value: "\(app.id)", icon: "number")
+                                StatCard(
+                                    title: L10n.tr("app_detail.stat_current_players", fallback: "Current Players"),
+                                    value: app.playerStats.map { Self.formatStatValue($0.currentPlayers) } ?? "—",
+                                    icon: "person.2.fill"
+                                )
+                                StatCard(
+                                    title: L10n.tr("app_detail.stat_peak_24h", fallback: "24h Peak"),
+                                    value: app.playerStats.map { Self.formatStatValue($0.peak24h) } ?? "—",
+                                    icon: "chart.bar.fill"
+                                )
+                                StatCard(
+                                    title: L10n.tr("app_detail.stat_peak_all_time", fallback: "All-Time Peak"),
+                                    value: app.playerStats.map { Self.formatStatValue($0.allTimePeak) } ?? "—",
+                                    icon: "trophy.fill"
+                                )
+                                StatCard(
+                                    title: L10n.tr("app_detail.stat_app_id", fallback: "App ID"),
+                                    value: "\(app.id)",
+                                    icon: "number"
+                                )
                             }
 
                             if let shortDescription = app.shortDescription, !shortDescription.isEmpty {
                                 GlassCard {
                                     VStack(alignment: .leading, spacing: 8) {
-                                        Text("Description")
+                                        Text(L10n.tr("app_detail.description", fallback: "Description"))
                                             .font(.headline)
                                             .foregroundStyle(.secondary)
                                         Text(shortDescription)
@@ -132,7 +149,7 @@ public struct AppDetailView: View {
                             // Platforms
                             GlassCard {
                                 VStack(alignment: .leading) {
-                                    Text("Platforms")
+                                    Text(L10n.tr("app_detail.platforms", fallback: "Platforms"))
                                         .font(.headline)
                                         .foregroundStyle(.secondary)
                                     
@@ -197,17 +214,41 @@ public struct AppDetailView: View {
                             
                             // Actions
                             HStack {
+                                let isSteamSignedIn = wishlistManager.isSteamSignedIn
                                 let isWishlisted = wishlistManager.isWishlisted(appID: app.id)
-                                GlassButton(isWishlisted ? "In Wishlist" : "Wishlist", 
-                                          icon: isWishlisted ? "heart.fill" : "heart", 
-                                          style: isWishlisted ? .primary : .secondary) {
-                                    wishlistManager.toggleWishlist(appID: app.id)
-                                    HapticManager.shared.notification(isWishlisted ? .success : .warning)
+                                let wishlistTitle = !isSteamSignedIn
+                                    ? L10n.tr("app_detail.sign_in_wishlist", fallback: "Sign in for Wishlist")
+                                    : (isWishlisted
+                                        ? L10n.tr("app_detail.in_wishlist", fallback: "In Wishlist")
+                                        : L10n.tr("app_detail.manage_wishlist", fallback: "Manage in Steam"))
+                                let wishlistIcon = isWishlisted ? "heart.fill" : "heart"
+
+                                GlassButton(
+                                    wishlistTitle,
+                                    icon: wishlistIcon,
+                                    style: isWishlisted ? .primary : .secondary
+                                ) {
+                                    if !isSteamSignedIn {
+                                        storeURL = URL(string: "https://store.steampowered.com/login/")
+                                        inAppWebTitle = L10n.tr("steam.sign_in", fallback: "Sign in with Steam")
+                                        openStoreInApp = true
+                                        return
+                                    }
+
+                                    if isWishlisted {
+                                        storeURL = URL(string: "https://store.steampowered.com/wishlist/")
+                                        inAppWebTitle = L10n.tr("wishlist.steam_title", fallback: "Steam Wishlist")
+                                        openStoreInApp = true
+                                    } else {
+                                        storeURL = URL(string: "https://store.steampowered.com/app/\(app.id)/")
+                                        showStoreDestinationSheet = true
+                                    }
                                 }
                                 
-                                GlassButton("Store", icon: "cart", style: .primary) {
+                                GlassButton(L10n.tr("app_detail.store", fallback: "Store"), icon: "cart", style: .primary) {
                                     storeURL = URL(string: "https://store.steampowered.com/app/\(app.id)/")
-                                    showStoreDestinationDialog = true
+                                    inAppWebTitle = L10n.tr("app_detail.store", fallback: "Store")
+                                    showStoreDestinationSheet = true
                                 }
                             }
                         }
@@ -218,28 +259,26 @@ public struct AppDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .background(
-            NavigationLink(isActive: $openStoreInApp) {
-                if let storeURL {
-                    WebFallbackShellView(url: storeURL, title: "Steam Store")
-                }
-            } label: {
+        .navigationDestination(isPresented: $openStoreInApp) {
+            if let storeURL {
+                WebFallbackShellView(url: storeURL, title: inAppWebTitle)
+            } else {
                 EmptyView()
             }
-            .hidden()
-        )
-        .confirmationDialog("Open store page", isPresented: $showStoreDestinationDialog, titleVisibility: .visible) {
-            Button("In app browser") {
-                guard storeURL != nil else { return }
-                openStoreInApp = true
-            }
-            Button("External browser") {
-                guard let storeURL else { return }
-                openURL(storeURL)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Choose where to open the Steam store page.")
+        }
+        .sheet(isPresented: $showStoreDestinationSheet) {
+            StoreOpenDestinationSheet(
+                onInApp: {
+                    guard storeURL != nil else { return }
+                    openStoreInApp = true
+                },
+                onExternal: {
+                    guard let storeURL else { return }
+                    openURL(storeURL)
+                }
+            )
+            .presentationDetents([.height(230)])
+            .presentationDragIndicator(.visible)
         }
         .task {
             await viewModel.loadDetails()
@@ -287,6 +326,66 @@ struct StatCard: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+private struct StoreOpenDestinationSheet: View {
+    let onInApp: () -> Void
+    let onExternal: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(L10n.tr("store_sheet.title", fallback: "Open store page"))
+                .font(.headline)
+                .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+
+            Text(L10n.tr("store_sheet.message", fallback: "Choose where to open the Steam store page."))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Button {
+                dismiss()
+                onInApp()
+            } label: {
+                sheetActionRow(L10n.tr("store_sheet.open_in_app", fallback: "Open in app browser"), icon: "safari")
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                dismiss()
+                onExternal()
+            } label: {
+                sheetActionRow(L10n.tr("store_sheet.open_external", fallback: "Open in external browser"), icon: "arrow.up.right.square")
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                dismiss()
+            } label: {
+                sheetActionRow(L10n.tr("common.cancel", fallback: "Cancel"), icon: "xmark")
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 0)
+        }
+        .padding(18)
+    }
+
+    @ViewBuilder
+    private func sheetActionRow(_ title: String, icon: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+            Text(title)
+                .fontWeight(.semibold)
+            Spacer()
+        }
+        .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

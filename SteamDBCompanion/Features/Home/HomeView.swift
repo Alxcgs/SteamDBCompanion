@@ -43,7 +43,7 @@ public struct HomeView: View {
                             NavigationLink(destination: SearchView(dataSource: dataSource)) {
                                 HStack {
                                     Image(systemName: "magnifyingglass")
-                                    Text("Search")
+                                    Text(L10n.tr("search.title", fallback: "Search"))
                                         .fontWeight(.semibold)
                                 }
                                 .padding()
@@ -64,7 +64,7 @@ public struct HomeView: View {
                         
                         if viewModel.isLoading {
                             VStack(spacing: 16) {
-                                Text("Loading...")
+                                Text(L10n.tr("common.loading", fallback: "Loading..."))
                                     .font(.headline)
                                     .foregroundStyle(.secondary)
                                     .padding(.top, 20)
@@ -85,7 +85,7 @@ public struct HomeView: View {
                                     Text(error)
                                         .multilineTextAlignment(.center)
                                         .padding()
-                                    GlassButton("Retry", style: .primary) {
+                                    GlassButton(L10n.tr("common.retry", fallback: "Retry"), style: .primary) {
                                         Task { await viewModel.loadData() }
                                     }
                                 }
@@ -94,7 +94,7 @@ public struct HomeView: View {
                         } else {
                             // Trending Section
                             VStack(alignment: .leading, spacing: 16) {
-                                SectionHeader(title: "Trending", icon: "chart.line.uptrend.xyaxis")
+                                SectionHeader(title: L10n.tr("home.trending", fallback: "Trending"), icon: "chart.line.uptrend.xyaxis")
                                 
                                 if DeviceInfo.isIPad {
                                     // iPad: Grid layout
@@ -123,7 +123,7 @@ public struct HomeView: View {
                                 }
 
                                 if viewModel.trendingApps.isEmpty {
-                                    Text("No trending data right now.")
+                                    Text(L10n.tr("home.no_trending", fallback: "No trending data right now."))
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .padding(.horizontal)
@@ -132,7 +132,7 @@ public struct HomeView: View {
                             
                             // Top Sellers Section
                             VStack(alignment: .leading, spacing: 16) {
-                                SectionHeader(title: "Top Sellers", icon: "crown.fill")
+                                SectionHeader(title: L10n.tr("home.top_sellers", fallback: "Top Sellers"), icon: "crown.fill")
                                 
                                 LazyVStack(spacing: 12) {
                                     ForEach(viewModel.topSellers) { app in
@@ -142,7 +142,7 @@ public struct HomeView: View {
                                 .padding(.horizontal)
 
                                 if viewModel.topSellers.isEmpty {
-                                    Text("No top-seller data right now.")
+                                    Text(L10n.tr("home.no_top_sellers", fallback: "No top-seller data right now."))
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .padding(.horizontal)
@@ -209,7 +209,7 @@ struct TrendingAppCard: View {
                                 .font(.subheadline)
                                 .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
                         } else {
-                            Text("Free")
+                            Text(L10n.tr("common.free", fallback: "Free"))
                                 .font(.subheadline)
                                 .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
                         }

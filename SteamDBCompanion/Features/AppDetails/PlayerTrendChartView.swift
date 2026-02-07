@@ -14,12 +14,12 @@ public struct PlayerTrendChartView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Player Activity")
+                    Text(L10n.tr("player_chart.title", fallback: "Player Activity"))
                         .font(.headline)
                         .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                     
                     if !trend.points.isEmpty {
-                        Text("Last 24 Hours")
+                        Text(L10n.tr("player_chart.last_24h", fallback: "Last 24 Hours"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -30,9 +30,10 @@ public struct PlayerTrendChartView: View {
                 // Stats
                 if let peak = trend.peakPlayers {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("Peak")
+                        Text(L10n.tr("player_chart.peak", fallback: "Peak"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                        
                         HStack(spacing: 4) {
                             Image(systemName: "person.2.fill")
                                 .font(.caption2)
@@ -53,7 +54,7 @@ public struct PlayerTrendChartView: View {
                         Image(systemName: "chart.bar.xaxis")
                             .font(.largeTitle)
                             .foregroundStyle(.secondary)
-                        Text("No player data available")
+                        Text(L10n.tr("player_chart.empty", fallback: "No player data available"))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -146,7 +147,7 @@ public struct PlayerTrendDetailView: View {
                             Text(appName)
                                 .font(.headline)
                                 .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
-                            Text("Player activity")
+                            Text(L10n.tr("player_chart.subtitle", fallback: "Player activity"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(selectionSummary)
@@ -158,7 +159,7 @@ public struct PlayerTrendDetailView: View {
 
                     GlassCard {
                         if filteredPoints.isEmpty {
-                            Text("No player trend data available")
+                            Text(L10n.tr("player_chart.no_chart_data", fallback: "No player trend data available"))
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, minHeight: 260)
                         } else {
@@ -228,7 +229,7 @@ public struct PlayerTrendDetailView: View {
                                 .buttonStyle(.plain)
                                 .disabled(zoomIndex == zoomPresets.count - 1)
 
-                                Text("Zoom")
+                                Text(L10n.tr("common.zoom", fallback: "Zoom"))
                                     .font(.subheadline.bold())
                                     .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
 
@@ -261,7 +262,7 @@ public struct PlayerTrendDetailView: View {
                                 }
                             }
 
-                            Text("Tap or drag on the chart to inspect the exact player count at that date.")
+                            Text(L10n.tr("player_chart.hint", fallback: "Tap or drag on the chart to inspect the exact player count at that date."))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -271,7 +272,7 @@ public struct PlayerTrendDetailView: View {
                 .padding(.bottom, 24)
             }
         }
-        .navigationTitle("Player Chart")
+        .navigationTitle(L10n.tr("player_chart.navigation_title", fallback: "Player Chart"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -296,9 +297,9 @@ public struct PlayerTrendDetailView: View {
     }
 
     private var selectionSummary: String {
-        guard let point = selectedPoint else { return "No player data" }
+        guard let point = selectedPoint else { return L10n.tr("player_chart.no_data", fallback: "No player data") }
         let dateText = point.date.formatted(date: .abbreviated, time: .shortened)
-        return "\(dateText) • \(formatNumber(point.playerCount)) players"
+        return "\(dateText) • \(formatNumber(point.playerCount)) \(L10n.tr("player_chart.players_suffix", fallback: "players"))"
     }
 
     private func formatNumber(_ number: Int) -> String {

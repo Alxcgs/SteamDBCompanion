@@ -22,7 +22,7 @@ public struct SearchView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
                     
-                    TextField("Search apps, packages...", text: $viewModel.query)
+                    TextField(L10n.tr("search.placeholder", fallback: "Search apps, packages..."), text: $viewModel.query)
                         .textFieldStyle(.plain)
                         .focused($isFocused)
                     
@@ -63,7 +63,7 @@ public struct SearchView: View {
                             }
                             .padding(.top, 50)
                         } else if viewModel.results.isEmpty && !viewModel.query.isEmpty {
-                            Text("No results found")
+                            Text(L10n.tr("search.no_results", fallback: "No results found"))
                                 .foregroundStyle(.secondary)
                                 .padding(.top, 50)
                         } else if !viewModel.results.isEmpty {
@@ -104,7 +104,7 @@ public struct SearchView: View {
                 }
             }
         }
-        .navigationTitle("Search")
+        .navigationTitle(L10n.tr("search.title", fallback: "Search"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             isFocused = true
