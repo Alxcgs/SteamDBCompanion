@@ -3,6 +3,7 @@ import SwiftUI
 public struct RouteDirectoryView: View {
     private let dataSource: SteamDBDataSource
     private let routes: [RouteDescriptor]
+    @State private var query: String = ""
 
     public init(dataSource: SteamDBDataSource, routes: [RouteDescriptor] = RouteRegistry.defaultDescriptors) {
         self.dataSource = dataSource
@@ -34,13 +35,26 @@ public struct RouteDirectoryView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
         .navigationTitle(L10n.tr("routes.all_pages", fallback: "All Pages"))
         .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $query)
+        .searchToolbarBehavior(.minimize)
+    }
+
+    private var filteredRoutes: [RouteDescriptor] {
+        let base = routes.filter(\.enabled).filter { !$0.path.contains(":") }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return base }
+        return base.filter { descriptor in
+            descriptor.title.localizedCaseInsensitiveContains(trimmed) ||
+            descriptor.path.localizedCaseInsensitiveContains(trimmed)
+        }
     }
 
     private var groupedRoutes: [RouteGroup: [RouteDescriptor]] {
         Dictionary(
-            grouping: routes.filter(\.enabled).filter { !$0.path.contains(":") },
+            grouping: filteredRoutes,
             by: \.group
         )
     }
@@ -70,3 +84,4 @@ public struct RouteDirectoryView: View {
         }
     }
 }
+

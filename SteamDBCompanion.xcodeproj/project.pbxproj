@@ -252,12 +252,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4ZA6843S29;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					"*.md",
 					"*.toml",
-					"Package.resolved",
-					"project.yml",
+					Package.resolved,
+					project.yml,
 					"Docs/*",
 					"LRUCache/*",
 					"SwiftSoup/*",
@@ -294,12 +295,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4ZA6843S29;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					"*.md",
 					"*.toml",
-					"Package.resolved",
-					"project.yml",
+					Package.resolved,
+					project.yml,
 					"Docs/*",
 					"LRUCache/*",
 					"SwiftSoup/*",

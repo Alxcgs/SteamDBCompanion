@@ -10,99 +10,86 @@ struct ContentView: View {
     @EnvironmentObject private var deepLinkRouter: DeepLinkRouter
     @EnvironmentObject private var wishlistManager: WishlistManager
     @EnvironmentObject private var alertEngine: InAppAlertEngine
-    @State private var useNativeHomeFallback = false
-    @State private var showWebFallbackBanner = false
-    
-    var body: some View {
-        TabView {
-            if fullWebsiteModeEnabled {
-                Group {
-                    if useNativeHomeFallback {
-                        HomeView(dataSource: dataSource)
-                            .safeAreaInset(edge: .top) {
-                                if showWebFallbackBanner {
-                                    HStack(spacing: 10) {
-                                        Image(systemName: "wifi.exclamationmark")
-                                        Text(L10n.tr("web.startup_fallback_banner", fallback: "Web mode is temporarily unavailable. Showing native Home."))
-                                            .font(.caption)
-                                        Spacer()
-                                        Button(L10n.tr("common.retry", fallback: "Retry")) {
-                                            useNativeHomeFallback = false
-                                            showWebFallbackBanner = false
-                                        }
-                                        .font(.caption.bold())
-                                        Button {
-                                            showWebFallbackBanner = false
-                                        } label: {
-                                            Image(systemName: "xmark")
-                                                .font(.caption.bold())
-                                        }
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .foregroundStyle(.white)
-                                    .background(Color.orange.opacity(0.9), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                    .padding(.horizontal, 12)
-                                    .padding(.top, 8)
-                                }
-                            }
-                    } else {
-                        NavigationStack {
-                            WebFallbackShellView(
-                                url: URL(string: "https://steamdb.info/")!,
-                                title: "SteamDB",
-                                hidesTabBar: false,
-                                showsNavigationChrome: false
-                            ) {
-                                guard fullWebsiteModeEnabled else { return }
-                                useNativeHomeFallback = true
-                                showWebFallbackBanner = true
-                            }
-                        }
-                    }
-                }
-                .tabItem {
-                    Label(LocalizedStringKey("tab.home"), systemImage: "house.fill")
-                }
+    @Namespace private var toolbarNS
 
-                NavigationStack {
-                    WebFallbackShellView(
-                        url: URL(string: "https://steamdb.info/search/")!,
-                        title: "Explore",
-                        hidesTabBar: false,
-                        showsNavigationChrome: false
-                    )
-                }
-                .tabItem {
-                    Label(LocalizedStringKey("tab.explore"), systemImage: "map.fill")
-                }
-            } else {
-                HomeView(dataSource: dataSource)
+    var body: some View {
+        ZStack {
+            GlassBackgroundView(material: .regularMaterial)
+                .ignoresSafeArea()
+
+            TabView {
+                if fullWebsiteModeEnabled {
+                    Group {
+                        HomeView(dataSource: dataSource)
+                    }
                     .tabItem {
                         Label(LocalizedStringKey("tab.home"), systemImage: "house.fill")
                     }
 
+                    NavigationStack {
+                        WebFallbackShellView(
+                            url: URL(string: "https://steamdb.info/search/")!,
+                            title: "Explore",
+                            hidesTabBar: false,
+                            showsNavigationChrome: false
+                        )
+                    }
+                    .tabItem {
+                        Label(LocalizedStringKey("tab.explore"), systemImage: "map.fill")
+                    }
+                } else {
+                    HomeView(dataSource: dataSource)
+                        .tabItem {
+                            Label(LocalizedStringKey("tab.home"), systemImage: "house.fill")
+                        }
+
+                    NavigationStack {
+                        RouteDirectoryView(dataSource: dataSource)
+                    }
+                    .tabItem {
+                        Label(LocalizedStringKey("tab.explore"), systemImage: "map.fill")
+                    }
+                }
+
+                if alertEngine.latestDiffs.isEmpty {
+                    NavigationStack {
+                        UpdatesView(dataSource: dataSource, wishlistManager: wishlistManager, alertEngine: alertEngine)
+                    }
+                    .tabItem {
+                        Label(LocalizedStringKey("tab.updates"), systemImage: "bell.badge.fill")
+                            .symbolEffect(.bounce, value: alertEngine.latestDiffs.count)
+                    }
+                } else {
+                    NavigationStack {
+                        UpdatesView(dataSource: dataSource, wishlistManager: wishlistManager, alertEngine: alertEngine)
+                    }
+                    .tabItem {
+                        Label(LocalizedStringKey("tab.updates"), systemImage: "bell.badge.fill")
+                            .symbolEffect(.bounce, value: alertEngine.latestDiffs.count)
+                    }
+                    .badge(alertEngine.latestDiffs.count)
+                }
+
                 NavigationStack {
-                    RouteDirectoryView(dataSource: dataSource)
+                    SettingsView()
                 }
                 .tabItem {
-                    Label(LocalizedStringKey("tab.explore"), systemImage: "map.fill")
+                    Label(LocalizedStringKey("tab.settings"), systemImage: "gearshape.fill")
+                }
+                
+                NavigationStack {
+                    SearchView(dataSource: dataSource)
+                }
+                .tabItem {
+                    Label(L10n.tr("tab.search", fallback: "Search"), systemImage: "magnifyingglass")
                 }
             }
-
-            NavigationStack {
-                UpdatesView(dataSource: dataSource, wishlistManager: wishlistManager, alertEngine: alertEngine)
-            }
-            .tabItem {
-                Label(LocalizedStringKey("tab.updates"), systemImage: "bell.badge.fill")
-            }
-
-            NavigationStack {
-                SettingsView()
-            }
-            .tabItem {
-                Label(LocalizedStringKey("tab.settings"), systemImage: "gearshape.fill")
-            }
+            .tint(LiquidGlassTheme.Colors.neonPrimary)
+            .tabViewStyle(.automatic)
+            .toolbarBackground(.visible, for: .tabBar)
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
         }
         .sheet(isPresented: Binding(
             get: { deepLinkRouter.presentedPath != nil },
@@ -120,19 +107,19 @@ struct ContentView: View {
                                 Button("Done") {
                                     deepLinkRouter.dismiss()
                                 }
+                                .buttonStyle(.glass)
+                                .matchedTransitionSource(id: "deepLinkSheet", in: toolbarNS)
                             }
                         }
+                        .navigationTransition(.zoom(sourceID: "deepLinkSheet", in: toolbarNS))
                 }
             }
         }
-        .onChange(of: fullWebsiteModeEnabled) { _, enabled in
-            if enabled {
-                useNativeHomeFallback = false
-                showWebFallbackBanner = false
-            } else {
-                useNativeHomeFallback = false
-                showWebFallbackBanner = false
-            }
+        .presentationDetents([.medium, .large])
+        .presentationCornerRadius(24)
+        .presentationDragIndicator(.visible)
+        .onChange(of: fullWebsiteModeEnabled) { _, _ in
+            // Reset search bar if needed
         }
         .id("tabs_\(fullWebsiteModeEnabled)_\(storeCountryCode)_\(storeLanguageCode)_\(appLanguageModeRaw)")
     }
@@ -144,3 +131,4 @@ struct ContentView: View {
         .environmentObject(DeepLinkRouter())
         .environmentObject(InAppAlertEngine())
 }
+

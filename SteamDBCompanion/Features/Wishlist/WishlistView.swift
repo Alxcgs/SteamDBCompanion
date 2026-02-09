@@ -225,6 +225,7 @@ public struct WishlistView: View {
 
 struct WishlistRow: View {
     let app: SteamApp
+    @EnvironmentObject var wishlistManager: WishlistManager
     
     var body: some View {
         GlassCard(padding: 12) {
@@ -258,8 +259,18 @@ struct WishlistRow: View {
                 
                 Spacer()
                 
-                Image(systemName: "heart.fill")
-                    .foregroundStyle(LiquidGlassTheme.Colors.neonSecondary)
+                Button {
+                    wishlistManager.toggleWishlist(appID: app.id)
+                } label: {
+                    Image(systemName: wishlistManager.isWishlisted(appID: app.id) ? "heart.fill" : "heart")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                        .frame(width: 36, height: 36)
+                        .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSecondary).interactive(), in: .circle)
+                        .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L10n.tr("wishlist.toggle", fallback: "Toggle wishlist"))
             }
         }
     }
@@ -297,3 +308,4 @@ private struct WishlistCapsuleImage: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
+

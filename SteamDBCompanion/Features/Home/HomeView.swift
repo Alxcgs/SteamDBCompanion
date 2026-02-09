@@ -21,46 +21,27 @@ public struct HomeView: View {
                 ScrollView {
                     VStack(spacing: DeviceInfo.isIPad ? 32 : 24) {
                         // Header
-                        HStack {
+                        HStack(alignment: .center, spacing: 12) {
                             Text("SteamDB")
-                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .font(.largeTitle.bold())
                                 .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                            
+                                .minimumScaleFactor(0.85)
+
                             Spacer()
-                            
-                            NavigationLink(destination: WishlistView(dataSource: dataSource, wishlistManager: wishlistManager)) {
-                                Image(systemName: "heart.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(LiquidGlassTheme.Colors.neonSecondary)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.1))
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                            
-                            NavigationLink(destination: SearchView(dataSource: dataSource)) {
-                                HStack {
-                                    Image(systemName: "magnifyingglass")
-                                    Text(L10n.tr("search.title", fallback: "Search"))
-                                        .fontWeight(.semibold)
+
+                            GlassEffectContainer(spacing: 16) {
+                                HStack(spacing: 12) {
+                                    NavigationLink(destination: WishlistView(dataSource: dataSource, wishlistManager: wishlistManager)) {
+                                        WishlistHeartBubble(count: wishlistManager.wishlist.count)
+                                            .accessibilityLabel(Text(L10n.tr("wishlist.title", fallback: "Wishlist")))
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .padding()
-                                .frame(width: 120)
-                                .background(
-                                    RoundedRectangle(cornerRadius: LiquidGlassTheme.Layout.cornerRadius)
-                                        .fill(Color.white.opacity(0.1))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: LiquidGlassTheme.Layout.cornerRadius)
-                                        .strokeBorder(Color.primary.opacity(0.5), lineWidth: 1)
-                                )
-                                .foregroundStyle(.primary)
                             }
                         }
-                        .padding(.horizontal)
-                        .padding(.top)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
                         
                         if viewModel.isLoading {
                             VStack(spacing: 16) {
@@ -74,7 +55,7 @@ public struct HomeView: View {
                                         SkeletonAppCard()
                                     }
                                 }
-                                .padding(.horizontal)
+                                .padding(.horizontal, 16)
                             }
                         } else if let error = viewModel.errorMessage {
                             GlassCard {
@@ -109,26 +90,25 @@ public struct HomeView: View {
                                             .buttonStyle(.plain)
                                         }
                                     }
-                                    .padding(.horizontal)
                                 } else {
                                     // iPhone: Horizontal scroll
-                                    ScrollView(.horizontal, showsIndicators: false) {
+                                    ScrollView(.horizontal) {
                                         HStack(spacing: 16) {
                                             ForEach(viewModel.trendingApps) { app in
                                                 TrendingAppCard(app: app)
                                             }
                                         }
-                                        .padding(.horizontal)
                                     }
+                                    .scrollIndicators(.hidden)
                                 }
 
                                 if viewModel.trendingApps.isEmpty {
                                     Text(L10n.tr("home.no_trending", fallback: "No trending data right now."))
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
-                                        .padding(.horizontal)
                                 }
                             }
+                            .padding(.horizontal, 16)
                             
                             // Top Sellers Section
                             VStack(alignment: .leading, spacing: 16) {
@@ -139,15 +119,14 @@ public struct HomeView: View {
                                         TopSellerRow(app: app)
                                     }
                                 }
-                                .padding(.horizontal)
 
                                 if viewModel.topSellers.isEmpty {
                                     Text(L10n.tr("home.no_top_sellers", fallback: "No top-seller data right now."))
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
-                                        .padding(.horizontal)
                                 }
                             }
+                            .padding(.horizontal, 16)
                         }
                     }
                     .padding(.bottom, 40)
@@ -183,7 +162,6 @@ struct SectionHeader: View {
                 .font(.title2.bold())
                 .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
         }
-        .padding(.horizontal)
     }
 }
 
@@ -206,12 +184,18 @@ struct TrendingAppCard: View {
                         
                         if let price = app.price {
                             Text(price.formatted)
-                                .font(.subheadline)
-                                .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSuccess).interactive(), in: .capsule)
                         } else {
                             Text(L10n.tr("common.free", fallback: "Free"))
-                                .font(.subheadline)
-                                .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSuccess).interactive(), in: .capsule)
                         }
                     }
                     .padding(12)
@@ -253,14 +237,11 @@ struct TopSellerRow: View {
 
                     if let price = app.price {
                         Text(price.formatted)
-                            .font(.headline)
-                            .foregroundStyle(LiquidGlassTheme.Colors.neonSuccess)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(
-                                Capsule()
-                                    .fill(LiquidGlassTheme.Colors.neonSuccess.opacity(0.1))
-                            )
+                            .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSuccess).interactive(), in: .capsule)
                     }
                 }
             }
@@ -307,6 +288,31 @@ private struct SteamCapsuleImage: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    }
+}
+
+private struct WishlistHeartBubble: View {
+    let count: Int
+    var body: some View {
+        let hasItems = count > 0
+        return Image(systemName: hasItems ? "heart.fill" : "heart")
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+            .frame(width: 36, height: 36)
+            .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSecondary).interactive(), in: .circle)
+            .overlay(alignment: .topTrailing) {
+                if hasItems {
+                    Text(String(min(count, 99)))
+                        .font(.caption2.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(LiquidGlassTheme.Colors.neonSecondary)
+                        .clipShape(Capsule())
+                        .offset(x: 6, y: -6)
+                }
+            }
+            .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
     }
 }
 
