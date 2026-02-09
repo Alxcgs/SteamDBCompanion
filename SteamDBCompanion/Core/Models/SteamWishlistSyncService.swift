@@ -59,11 +59,19 @@ public final class SteamWishlistSyncService {
             return SteamSessionStatus(isAuthenticated: false)
         }
 
+        let countryCode = extractCountryCode(from: cookies)
+
+        if let steamID = extractSteamID(from: cookies) {
+            if let _ = try? await SteamWebAPIClient.shared.fetchWishlist(steamID: steamID) {
+                return SteamSessionStatus(isAuthenticated: true, countryCode: countryCode)
+            }
+        }
+
         do {
             let payload = try await fetchWishlistPayload(cookies: cookies)
             return SteamSessionStatus(
                 isAuthenticated: true,
-                countryCode: payload.countryCode?.lowercased()
+                countryCode: payload.countryCode?.lowercased() ?? countryCode
             )
         } catch {
             return SteamSessionStatus(
@@ -79,11 +87,24 @@ public final class SteamWishlistSyncService {
             throw SteamWishlistSyncError.notLoggedIn
         }
 
+        let countryCode = extractCountryCode(from: cookies)
+        if let steamID = extractSteamID(from: cookies) {
+            if let appIDs = try? await SteamWebAPIClient.shared.fetchWishlist(steamID: steamID),
+               !appIDs.isEmpty {
+                return SteamWishlistSyncResult(
+                    appIDs: appIDs,
+                    countryCode: countryCode,
+                    isAuthenticated: true,
+                    timestamp: Date()
+                )
+            }
+        }
+
         let payload = try await fetchWishlistPayload(cookies: cookies)
         let normalizedIDs = Array(Set(payload.rgWishlist ?? [])).sorted()
         return SteamWishlistSyncResult(
             appIDs: normalizedIDs,
-            countryCode: payload.countryCode?.lowercased(),
+            countryCode: payload.countryCode?.lowercased() ?? countryCode,
             isAuthenticated: true,
             timestamp: Date()
         )
@@ -108,6 +129,35 @@ public final class SteamWishlistSyncService {
         let steamCookies = cookies.filter { $0.domain.contains("steam") }
         let names = Set(steamCookies.map(\.name))
         return names.contains("steamLoginSecure") && names.contains("sessionid")
+    }
+
+    private func extractSteamID(from cookies: [HTTPCookie]) -> String? {
+        guard let cookie = cookies.first(where: { $0.name == "steamLoginSecure" && $0.domain.contains("steam") }) else {
+            return nil
+        }
+        let value = cookie.value
+        if let separator = value.range(of: "||") {
+            return String(value[..<separator.lowerBound])
+        }
+        return nil
+    }
+
+    private func extractCountryCode(from cookies: [HTTPCookie]) -> String? {
+        guard let cookie = cookies.first(where: { $0.name == "steamCountry" && $0.domain.contains("steam") }) else {
+            return nil
+        }
+        let raw = cookie.value
+        let upper = raw.uppercased()
+        if let pipe = upper.firstIndex(of: "|") {
+            return String(upper[..<pipe]).lowercased()
+        }
+        if let percent = upper.firstIndex(of: "%") {
+            return String(upper[..<percent]).lowercased()
+        }
+        if upper.count == 2 {
+            return upper.lowercased()
+        }
+        return nil
     }
 
     private func fetchWishlistPayload(cookies: [HTTPCookie]) async throws -> SteamUserDataPayload {

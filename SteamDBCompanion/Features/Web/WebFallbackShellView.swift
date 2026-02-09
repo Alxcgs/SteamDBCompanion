@@ -9,6 +9,24 @@ private enum WebLoadState: Equatable {
     case failed(String)
 }
 
+private enum WebViewportInsets {
+    static func top() -> CGFloat {
+        guard let window = keyWindow() else { return 0 }
+        return window.safeAreaInsets.top
+    }
+
+    static func bottom() -> CGFloat {
+        guard let window = keyWindow() else { return 0 }
+        return window.safeAreaInsets.bottom
+    }
+
+    private static func keyWindow() -> UIWindow? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let windows = scenes.flatMap { $0.windows }
+        return windows.first(where: \.isKeyWindow) ?? windows.first
+    }
+}
+
 @MainActor
 private final class EmbeddedWebState: ObservableObject {
     @Published var canGoBack = false
@@ -169,9 +187,12 @@ private struct EmbeddedWebView: UIViewRepresentable {
         applyInsets(to: webView)
         context.coordinator.applySafeAreaInsets(to: webView, top: topContentInset, bottom: bottomContentInset)
         if webView.url == nil {
-            state.beginLoading()
-            let request = URLRequest(url: initialURL, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30)
-            webView.load(request)
+            DispatchQueue.main.async {
+                guard webView.url == nil else { return }
+                state.beginLoading()
+                let request = URLRequest(url: initialURL, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 30)
+                webView.load(request)
+            }
         }
     }
 
@@ -415,50 +436,48 @@ public struct WebFallbackShellView: View {
     }
 
     public var body: some View {
-        GeometryReader { proxy in
-            let safeTop = proxy.safeAreaInsets.top
-            let safeBottom = proxy.safeAreaInsets.bottom
-            let topInset = showsNavigationChrome ? 0 : max(safeTop, 16)
-            let bottomInset = hidesTabBar ? max(safeBottom, 0) : max(safeBottom + 64, 72)
-            let automaticInsets = showsNavigationChrome
+        let safeTop = WebViewportInsets.top()
+        let safeBottom = WebViewportInsets.bottom()
+        let topInset = showsNavigationChrome ? 0 : max(safeTop, 16)
+        let bottomInset = hidesTabBar ? max(safeBottom, 0) : max(safeBottom + 64, 72)
+        let automaticInsets = showsNavigationChrome
 
-            EmbeddedWebView(
-                initialURL: url,
-                fallbackURL: fallbackURL,
-                topContentInset: topInset,
-                bottomContentInset: bottomInset,
-                usesAutomaticInsets: automaticInsets,
-                state: webState
-            )
-                .background(Color.black.opacity(0.95))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .overlay(alignment: .center) {
-                    if case let .failed(message) = webState.loadState {
-                        VStack(spacing: 12) {
-                            Text(L10n.tr("web.error_title", fallback: "Failed to open page"))
-                                .font(.headline)
-                            Text(message)
-                                .font(.subheadline)
-                                .multilineTextAlignment(.center)
-                                .foregroundStyle(.secondary)
-                            HStack(spacing: 10) {
-                                Button(L10n.tr("common.retry", fallback: "Retry")) {
-                                    didNotifyLoadFailure = false
-                                    webState.reloadPrimary()
-                                }
-                                .buttonStyle(.borderedProminent)
-                                Button(L10n.tr("web.open_in_safari", fallback: "Open in Safari")) {
-                                    openURL(url)
-                                }
-                                .buttonStyle(.bordered)
+        EmbeddedWebView(
+            initialURL: url,
+            fallbackURL: fallbackURL,
+            topContentInset: topInset,
+            bottomContentInset: bottomInset,
+            usesAutomaticInsets: automaticInsets,
+            state: webState
+        )
+            .background(Color.black.opacity(0.95))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .overlay(alignment: .center) {
+                if case let .failed(message) = webState.loadState {
+                    VStack(spacing: 12) {
+                        Text(L10n.tr("web.error_title", fallback: "Failed to open page"))
+                            .font(.headline)
+                        Text(message)
+                            .font(.subheadline)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 10) {
+                            Button(L10n.tr("common.retry", fallback: "Retry")) {
+                                didNotifyLoadFailure = false
+                                webState.reloadPrimary()
                             }
+                            .buttonStyle(.borderedProminent)
+                            Button(L10n.tr("web.open_in_safari", fallback: "Open in Safari")) {
+                                openURL(url)
+                            }
+                            .buttonStyle(.bordered)
                         }
-                        .padding(16)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .padding(20)
                     }
+                    .padding(16)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(20)
                 }
-        }
+            }
         .toolbar {
             if showsNavigationChrome {
                 ToolbarItem(placement: .topBarLeading) {
