@@ -1,6 +1,8 @@
 import Foundation
 import Combine
 
+private let defaultAlertEngineStorage = UserDefaults.standard
+
 public struct AppSnapshot: Identifiable, Codable, Hashable {
     public var id: Int { appID }
     public let appID: Int
@@ -64,7 +66,7 @@ public final class InAppAlertEngine: ObservableObject {
     private let snapshotsKey = "in_app_snapshots"
     private let historyKey = "in_app_alert_history"
 
-    public init(diffService: AlertDiffService = DefaultAlertDiffService(), storage: UserDefaults = .standard) {
+    public init(diffService: AlertDiffService = DefaultAlertDiffService(), storage: UserDefaults = defaultAlertEngineStorage) {
         self.diffService = diffService
         self.storage = storage
         self.history = load([AlertDiff].self, for: historyKey) ?? []
