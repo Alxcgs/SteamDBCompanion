@@ -53,19 +53,36 @@ public struct SearchView: View {
                             ProgressView()
                                 .padding(.top, 50)
                         } else if let errorMessage = viewModel.errorMessage {
-                            VStack(spacing: 8) {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .foregroundStyle(LiquidGlassTheme.Colors.neonError)
-                                Text(errorMessage)
-                                    .font(.callout)
-                                    .multilineTextAlignment(.center)
-                                    .foregroundStyle(.secondary)
+                            ContentStatusView(
+                                kind: .error,
+                                title: L10n.tr("search.error_title", fallback: "Search failed"),
+                                message: errorMessage,
+                                actionTitle: L10n.tr("common.retry", fallback: "Retry")
+                            ) {
+                                viewModel.search()
                             }
-                            .padding(.top, 50)
+                            .padding(.top, 32)
+                        } else if viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            ContentStatusView(
+                                kind: .info,
+                                title: L10n.tr("search.start_title", fallback: "Find any Steam app"),
+                                message: L10n.tr("search.start_message", fallback: "Search by game name, package, or app ID to jump into details.")
+                            )
+                            .padding(.top, 32)
+                        } else if viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).count < viewModel.minimumQueryLength {
+                            ContentStatusView(
+                                kind: .info,
+                                title: L10n.tr("search.keep_typing", fallback: "Keep typing"),
+                                message: L10n.tr("search.min_query", fallback: "Enter at least two characters to search.")
+                            )
+                            .padding(.top, 32)
                         } else if viewModel.results.isEmpty && !viewModel.query.isEmpty {
-                            Text(L10n.tr("search.no_results", fallback: "No results found"))
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 50)
+                            ContentStatusView(
+                                kind: .empty,
+                                title: L10n.tr("search.no_results", fallback: "No results found"),
+                                message: String(format: L10n.tr("search.no_results_for", fallback: "Nothing matched “%@”."), viewModel.lastSearchedQuery)
+                            )
+                            .padding(.top, 32)
                         } else if !viewModel.results.isEmpty {
                             if DeviceInfo.isIPad {
                                 // iPad: Grid layout

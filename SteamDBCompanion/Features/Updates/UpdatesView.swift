@@ -23,13 +23,79 @@ public struct UpdatesView: View {
                 .ignoresSafeArea()
 
             if viewModel.isLoading {
-                ProgressView(L10n.tr("updates.loading", fallback: "Checking updates..."))
+                if viewModel.trackedApps.isEmpty && viewModel.steamNews.isEmpty && viewModel.wishlistNews.isEmpty {
+                    ContentStatusView(
+                        kind: .loading,
+                        title: L10n.tr("updates.loading", fallback: "Checking updates..."),
+                        message: L10n.tr("updates.loading_hint", fallback: "Refreshing tracked apps, alerts, and news.")
+                    )
+                } else {
+                    updatesList
+                        .overlay(alignment: .top) {
+                            ProgressView(L10n.tr("updates.refreshing", fallback: "Refreshing..."))
+                                .padding(10)
+                                .background(.ultraThinMaterial, in: Capsule())
+                                .padding(.top, 8)
+                        }
+                }
             } else {
-                List {
+                updatesList
+            }
+        }
+        .navigationTitle(L10n.tr("updates.title", fallback: "Updates"))
+        .navigationDestination(for: SteamApp.self) { app in
+            AppDetailView(appID: app.id, dataSource: dataSource)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(L10n.tr("common.refresh", fallback: "Refresh")) {
+                    Task { await viewModel.refresh() }
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    WebFallbackShellView(url: AppURLs.steamStoreNews, title: L10n.tr("updates.steam_news", fallback: "Steam News"))
+                } label: {
+                    Image(systemName: "newspaper")
+                }
+            }
+
+            ToolbarItem(placement: .topBarLeading) {
+                Button(L10n.tr("common.clear", fallback: "Clear")) {
+                    alertEngine.clearHistory()
+                }
+            }
+        }
+        .task {
+            await viewModel.refresh()
+        }
+    }
+
+    private var updatesList: some View {
+        List {
                     if let error = viewModel.errorMessage, !error.isEmpty {
                         Section(L10n.tr("updates.status_section", fallback: "Status")) {
-                            Text(error)
-                                .foregroundStyle(LiquidGlassTheme.Colors.neonError)
+                            ContentStatusView(
+                                kind: .error,
+                                title: L10n.tr("updates.error_title", fallback: "Refresh failed"),
+                                message: error,
+                                actionTitle: L10n.tr("common.retry", fallback: "Retry")
+                            ) {
+                                Task { await viewModel.refresh() }
+                            }
+                            .listRowBackground(Color.clear)
+                        }
+                    }
+
+                    if let partialLoadMessage = viewModel.partialLoadMessage, !partialLoadMessage.isEmpty {
+                        Section(L10n.tr("updates.status_section", fallback: "Status")) {
+                            ContentStatusView(
+                                kind: .info,
+                                title: L10n.tr("updates.partial_title", fallback: "Partially refreshed"),
+                                message: partialLoadMessage
+                            )
+                            .listRowBackground(Color.clear)
                         }
                     }
 
@@ -107,39 +173,9 @@ public struct UpdatesView: View {
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
-                }
-                .scrollContentBackground(.hidden)
-                .refreshable {
-                    await viewModel.refresh()
-                }
-            }
         }
-        .navigationTitle(L10n.tr("updates.title", fallback: "Updates"))
-        .navigationDestination(for: SteamApp.self) { app in
-            AppDetailView(appID: app.id, dataSource: dataSource)
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(L10n.tr("common.refresh", fallback: "Refresh")) {
-                    Task { await viewModel.refresh() }
-                }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    WebFallbackShellView(url: URL(string: "https://store.steampowered.com/news/")!, title: L10n.tr("updates.steam_news", fallback: "Steam News"))
-                } label: {
-                    Image(systemName: "newspaper")
-                }
-            }
-
-            ToolbarItem(placement: .topBarLeading) {
-                Button(L10n.tr("common.clear", fallback: "Clear")) {
-                    alertEngine.clearHistory()
-                }
-            }
-        }
-        .task {
+        .scrollContentBackground(.hidden)
+        .refreshable {
             await viewModel.refresh()
         }
     }

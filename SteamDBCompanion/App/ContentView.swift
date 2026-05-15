@@ -28,7 +28,7 @@ struct ContentView: View {
 
                     NavigationStack {
                         WebFallbackShellView(
-                            url: URL(string: "https://steamdb.info/search/")!,
+                            url: AppURLs.steamDBSearch,
                             title: "Explore",
                             hidesTabBar: false,
                             showsNavigationChrome: false
@@ -107,11 +107,9 @@ struct ContentView: View {
                                 Button("Done") {
                                     deepLinkRouter.dismiss()
                                 }
-                                .buttonStyle(.glass)
-                                .matchedTransitionSource(id: "deepLinkSheet", in: toolbarNS)
+                                .buttonStyle(.bordered)
                             }
                         }
-                        .navigationTransition(.zoom(sourceID: "deepLinkSheet", in: toolbarNS))
                 }
             }
         }
@@ -131,4 +129,3 @@ struct ContentView: View {
         .environmentObject(DeepLinkRouter())
         .environmentObject(InAppAlertEngine())
 }
-

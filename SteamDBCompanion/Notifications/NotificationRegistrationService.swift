@@ -2,17 +2,27 @@ import Foundation
 import UserNotifications
 import UIKit
 import Combine
+import OSLog
 
 @MainActor
 public class NotificationRegistrationService: ObservableObject {
+    private static let logger = Logger(subsystem: "com.steamdb.SteamDBCompanion", category: "NotificationRegistration")
     
     @Published public var isAuthorized: Bool = false
     @Published public var deviceToken: String?
     
     public static let shared = NotificationRegistrationService()
+
+    private let registrationClient: any DeviceTokenRegistrationClient
     
-    private init() {
-        checkAuthorizationStatus()
+    public init(
+        registrationClient: any DeviceTokenRegistrationClient = NoOpDeviceTokenRegistrationClient(),
+        checksAuthorizationOnInit: Bool = true
+    ) {
+        self.registrationClient = registrationClient
+        if checksAuthorizationOnInit {
+            checkAuthorizationStatus()
+        }
     }
     
     public func checkAuthorizationStatus() {
@@ -38,11 +48,18 @@ public class NotificationRegistrationService: ObservableObject {
     public func registerDeviceToken(_ tokenData: Data) {
         let token = tokenData.map { String(format: "%02.2hhx", $0) }.joined()
         self.deviceToken = token
-        print("APNs Token: \(token)")
-        // TODO: Send to backend
+
+        Task {
+            do {
+                try await registrationClient.registerDeviceToken(token)
+                Self.logger.debug("Device token registration completed.")
+            } catch {
+                Self.logger.error("Device token registration failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
     
     public func didFailToRegister(error: Error) {
-        print("Failed to register for notifications: \(error.localizedDescription)")
+        Self.logger.error("Failed to register for notifications: \(error.localizedDescription, privacy: .public)")
     }
 }

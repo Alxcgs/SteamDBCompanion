@@ -411,7 +411,7 @@ public struct WebFallbackShellView: View {
         } else {
             normalizedPath = "/\(path)"
         }
-        self.url = URL(string: "https://steamdb.info\(normalizedPath)")!
+        self.url = AppURLs.steamDB(path: normalizedPath)
         self.title = title
         self.fallbackURL = fallbackURL
         self.hidesTabBar = hidesTabBar
@@ -454,27 +454,22 @@ public struct WebFallbackShellView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .overlay(alignment: .center) {
                 if case let .failed(message) = webState.loadState {
-                    VStack(spacing: 12) {
-                        Text(L10n.tr("web.error_title", fallback: "Failed to open page"))
-                            .font(.headline)
-                        Text(message)
-                            .font(.subheadline)
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(.secondary)
-                        HStack(spacing: 10) {
-                            Button(L10n.tr("common.retry", fallback: "Retry")) {
-                                didNotifyLoadFailure = false
-                                webState.reloadPrimary()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            Button(L10n.tr("web.open_in_safari", fallback: "Open in Safari")) {
-                                openURL(url)
-                            }
-                            .buttonStyle(.bordered)
+                    VStack(spacing: 10) {
+                        ContentStatusView(
+                            kind: .error,
+                            title: L10n.tr("web.error_title", fallback: "Failed to open page"),
+                            message: message,
+                            actionTitle: L10n.tr("common.retry", fallback: "Retry")
+                        ) {
+                            didNotifyLoadFailure = false
+                            webState.reloadPrimary()
                         }
+
+                        Button(L10n.tr("web.open_in_safari", fallback: "Open in Safari")) {
+                            openURL(url)
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .padding(16)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .padding(20)
                 }
             }

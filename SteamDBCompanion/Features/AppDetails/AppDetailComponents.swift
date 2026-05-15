@@ -92,9 +92,7 @@ struct AppDetailContent: View {
                 }
                 
                 GlassButton("Store", icon: "cart", style: .primary) {
-                    if let storeURL = URL(string: "https://store.steampowered.com/app/\(app.id)/") {
-                        openURL(storeURL)
-                    }
+                    openURL(AppURLs.steamStoreApp(id: app.id))
                 }
             }
         }
@@ -162,9 +160,7 @@ struct AppDetailLeftColumn: View {
                 }
                 
                 GlassButton("View in Steam Store", icon: "cart", style: .primary) {
-                    if let storeURL = URL(string: "https://store.steampowered.com/app/\(app.id)/") {
-                        openURL(storeURL)
-                    }
+                    openURL(AppURLs.steamStoreApp(id: app.id))
                 }
             }
         }

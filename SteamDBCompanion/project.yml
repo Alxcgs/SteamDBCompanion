@@ -15,13 +15,12 @@ targets:
       - LiquidGlass
       - SharedUI
       - Notifications
-      - Widgets
-      - WatchApp
+      - path: ../Config
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.steamdb.SteamDBCompanion
         INFOPLIST_FILE: Info.plist
-        SWIFT_VERSION: 5.9
+        SWIFT_VERSION: 5.0
         TARGETED_DEVICE_FAMILY: "1,2"
     dependencies:
       - package: SwiftSoup

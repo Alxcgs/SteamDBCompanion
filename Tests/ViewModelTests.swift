@@ -68,6 +68,17 @@ final class SearchViewModelTests: XCTestCase {
         // Then
         XCTAssertTrue(viewModel.results.isEmpty)
     }
+
+    @MainActor
+    func testShortQueryDoesNotSearch() async {
+        viewModel.query = "c"
+
+        try? await Task.sleep(nanoseconds: 500_000_000)
+
+        XCTAssertFalse(viewModel.isSearching)
+        XCTAssertTrue(viewModel.results.isEmpty)
+        XCTAssertEqual(viewModel.lastSearchedQuery, "")
+    }
     
     @MainActor
     func testSearchDebouncing() async {
@@ -82,6 +93,7 @@ final class SearchViewModelTests: XCTestCase {
         
         // Then
         XCTAssertFalse(viewModel.results.isEmpty, "Results should be populated after debounce")
+        XCTAssertEqual(viewModel.lastSearchedQuery, query)
     }
 }
 

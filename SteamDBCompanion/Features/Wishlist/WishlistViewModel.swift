@@ -6,6 +6,8 @@ public class WishlistViewModel: ObservableObject {
     
     @Published public var wishlistedApps: [SteamApp] = []
     @Published public var isLoading: Bool = false
+    @Published public var isRefreshing: Bool = false
+    @Published public var partialLoadMessage: String?
     @Published public var syncAlertMessage: String = ""
     @Published public var showSyncAlert: Bool = false
     
@@ -24,9 +26,17 @@ public class WishlistViewModel: ObservableObject {
     }
     
     public func loadWishlist() async {
-        guard !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
+        guard !isLoading && !isRefreshing else { return }
+        let hasVisibleContent = !wishlistedApps.isEmpty
+        if hasVisibleContent {
+            isRefreshing = true
+        } else {
+            isLoading = true
+        }
+        defer {
+            isLoading = false
+            isRefreshing = false
+        }
 
         let session = await steamSyncService.checkSteamSession()
         wishlistManager.setSteamAuthState(session.isAuthenticated ? .signedIn : .notSignedIn)
@@ -42,9 +52,16 @@ public class WishlistViewModel: ObservableObject {
     }
 
     public func syncFromSteamAccount() async {
-        guard !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
+        guard !isLoading && !isRefreshing else { return }
+        if wishlistedApps.isEmpty {
+            isLoading = true
+        } else {
+            isRefreshing = true
+        }
+        defer {
+            isLoading = false
+            isRefreshing = false
+        }
 
         await synchronizeWishlist(showAlert: true)
     }
@@ -77,13 +94,24 @@ public class WishlistViewModel: ObservableObject {
 
     private func loadAppDetailsFromStoredWishlist() async {
         var apps: [SteamApp] = []
+        var failedAppIDs: [Int] = []
 
         for appID in wishlistManager.wishlist.sorted() {
-            if let app = try? await dataSource.fetchAppDetails(appID: appID) {
+            do {
+                let app = try await dataSource.fetchAppDetails(appID: appID)
                 apps.append(app)
+            } catch {
+                failedAppIDs.append(appID)
             }
         }
 
         wishlistedApps = apps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        partialLoadMessage = failedAppIDs.isEmpty
+            ? nil
+            : String(
+                format: L10n.tr("wishlist.partial_load", fallback: "Loaded %d wishlist apps. %d could not be refreshed right now."),
+                apps.count,
+                failedAppIDs.count
+            )
     }
 }

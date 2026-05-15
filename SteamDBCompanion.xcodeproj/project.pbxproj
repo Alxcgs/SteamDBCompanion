@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		78D16A022EDF3410000687D8 /* SteamDBCompanion.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SteamDBCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		78D16A102EDF3411000687D8 /* SteamDBCompanionTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SteamDBCompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +17,22 @@
 			path = SteamDBCompanion;
 			sourceTree = "<group>";
 		};
+		78D16A112EDF3411000687D8 /* Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		78D169FF2EDF3410000687D8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		78D16A122EDF3411000687D8 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +46,7 @@
 			isa = PBXGroup;
 			children = (
 				78D16A042EDF3410000687D8 /* SteamDBCompanion */,
+				78D16A112EDF3411000687D8 /* Tests */,
 				78D16A032EDF3410000687D8 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,11 +55,22 @@
 			isa = PBXGroup;
 			children = (
 				78D16A022EDF3410000687D8 /* SteamDBCompanion.app */,
+				78D16A102EDF3411000687D8 /* SteamDBCompanionTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
+
+/* Begin PBXContainerItemProxy section */
+		78D16A132EDF3411000687D8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 78D169FA2EDF3410000687D8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 78D16A012EDF3410000687D8;
+			remoteInfo = SteamDBCompanion;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXNativeTarget section */
 		78D16A012EDF3410000687D8 /* SteamDBCompanion */ = {
@@ -70,6 +95,29 @@
 			productReference = 78D16A022EDF3410000687D8 /* SteamDBCompanion.app */;
 			productType = "com.apple.product-type.application";
 		};
+		78D16A142EDF3411000687D8 /* SteamDBCompanionTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 78D16A192EDF3411000687D8 /* Build configuration list for PBXNativeTarget "SteamDBCompanionTests" */;
+			buildPhases = (
+				78D16A152EDF3411000687D8 /* Sources */,
+				78D16A122EDF3411000687D8 /* Frameworks */,
+				78D16A162EDF3411000687D8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				78D16A172EDF3411000687D8 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				78D16A112EDF3411000687D8 /* Tests */,
+			);
+			name = SteamDBCompanionTests;
+			packageProductDependencies = (
+			);
+			productName = SteamDBCompanionTests;
+			productReference = 78D16A102EDF3411000687D8 /* SteamDBCompanionTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +130,10 @@
 				TargetAttributes = {
 					78D16A012EDF3410000687D8 = {
 						CreatedOnToolsVersion = 26.1.1;
+					};
+					78D16A142EDF3411000687D8 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = 78D16A012EDF3410000687D8;
 					};
 				};
 			};
@@ -101,12 +153,20 @@
 			projectRoot = "";
 			targets = (
 				78D16A012EDF3410000687D8 /* SteamDBCompanion */,
+				78D16A142EDF3411000687D8 /* SteamDBCompanionTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		78D16A002EDF3410000687D8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		78D16A162EDF3411000687D8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -123,7 +183,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		78D16A152EDF3411000687D8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		78D16A172EDF3411000687D8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 78D16A012EDF3410000687D8 /* SteamDBCompanion */;
+			targetProxy = 78D16A132EDF3411000687D8 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		78D16A0B2EDF3411000687D8 /* Debug */ = {
@@ -178,7 +253,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -235,7 +310,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -331,6 +406,60 @@
 			};
 			name = Release;
 		};
+		78D16A182EDF3411000687D8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4ZA6843S29;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steamdb.SteamDBCompanionTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SteamDBCompanion.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SteamDBCompanion";
+			};
+			name = Debug;
+		};
+		78D16A1A2EDF3411000687D8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4ZA6843S29;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steamdb.SteamDBCompanionTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SteamDBCompanion.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SteamDBCompanion";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -348,6 +477,15 @@
 			buildConfigurations = (
 				78D16A0E2EDF3411000687D8 /* Debug */,
 				78D16A0F2EDF3411000687D8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		78D16A192EDF3411000687D8 /* Build configuration list for PBXNativeTarget "SteamDBCompanionTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				78D16A182EDF3411000687D8 /* Debug */,
+				78D16A1A2EDF3411000687D8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

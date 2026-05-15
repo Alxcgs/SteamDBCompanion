@@ -39,7 +39,6 @@ public struct RouteDirectoryView: View {
         .navigationTitle(L10n.tr("routes.all_pages", fallback: "All Pages"))
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query)
-        .searchToolbarBehavior(.minimize)
     }
 
     private var filteredRoutes: [RouteDescriptor] {
@@ -84,4 +83,3 @@ public struct RouteDirectoryView: View {
         }
     }
 }
-

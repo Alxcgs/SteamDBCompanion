@@ -22,6 +22,7 @@ public final class UpdatesViewModel: ObservableObject {
     @Published public var wishlistNews: [SteamNewsItem] = []
     @Published public var isLoading = false
     @Published public var errorMessage: String?
+    @Published public var partialLoadMessage: String?
 
     private let dataSource: SteamDBDataSource
     private let wishlistManager: WishlistManager
@@ -40,23 +41,32 @@ public final class UpdatesViewModel: ObservableObject {
     public func refresh() async {
         isLoading = true
         errorMessage = nil
+        partialLoadMessage = nil
         defer { isLoading = false }
 
         let wishlistedIDs = wishlistManager.wishlist.sorted()
         async let globalNewsTask: [SteamNewsItem] = fetchGlobalSteamNews()
         async let wishlistNewsTask: [SteamNewsItem] = fetchWishlistNews(appIDs: wishlistedIDs)
 
-        do {
-            var apps: [SteamApp] = []
-            for appID in wishlistedIDs {
+        var apps: [SteamApp] = []
+        var failedAppIDs: [Int] = []
+        for appID in wishlistedIDs {
+            do {
                 let app = try await dataSource.fetchAppDetails(appID: appID)
                 apps.append(app)
+            } catch {
+                failedAppIDs.append(appID)
             }
+        }
 
-            trackedApps = apps
-            alertEngine.refresh(apps: apps)
-        } catch {
-            errorMessage = "\(L10n.tr("updates.error_refresh", fallback: "Failed to refresh updates")): \(error.localizedDescription)"
+        trackedApps = apps
+        alertEngine.refresh(apps: apps)
+        if !failedAppIDs.isEmpty {
+            partialLoadMessage = String(
+                format: L10n.tr("updates.partial_load", fallback: "Loaded updates for %d apps. %d apps could not be refreshed right now."),
+                apps.count,
+                failedAppIDs.count
+            )
         }
 
         wishlistNews = await wishlistNewsTask
@@ -64,12 +74,8 @@ public final class UpdatesViewModel: ObservableObject {
     }
 
     private func fetchGlobalSteamNews() async -> [SteamNewsItem] {
-        guard let feedURL = URL(string: "https://store.steampowered.com/feeds/news.xml") else {
-            return []
-        }
-
         do {
-            var request = URLRequest(url: feedURL, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 20)
+            var request = URLRequest(url: AppURLs.steamStoreNewsFeed, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 20)
             request.setValue("application/rss+xml, text/xml;q=0.9, */*;q=0.8", forHTTPHeaderField: "Accept")
             request.setValue("SteamDBCompanion-iOS", forHTTPHeaderField: "User-Agent")
 
@@ -122,7 +128,7 @@ public final class UpdatesViewModel: ObservableObject {
     }
 
     private func fetchNewsForApp(appID: Int) async -> [SteamNewsItem] {
-        var components = URLComponents(string: "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/")
+        var components = URLComponents(url: AppURLs.steamAppNews, resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "appid", value: "\(appID)"),
             URLQueryItem(name: "count", value: "5"),

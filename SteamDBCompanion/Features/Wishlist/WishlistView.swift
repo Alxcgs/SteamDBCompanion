@@ -21,9 +21,19 @@ public struct WishlistView: View {
                     .padding(.horizontal)
                     .padding(.top, 6)
 
+                if viewModel.isRefreshing {
+                    ProgressView(L10n.tr("wishlist.refreshing", fallback: "Refreshing wishlist..."))
+                        .font(.caption)
+                        .padding(.top, 2)
+                }
+
                 if viewModel.isLoading {
                     Spacer()
-                    ProgressView(L10n.tr("wishlist.syncing", fallback: "Syncing Steam wishlist..."))
+                    ContentStatusView(
+                        kind: .loading,
+                        title: L10n.tr("wishlist.syncing", fallback: "Syncing Steam wishlist..."),
+                        message: L10n.tr("wishlist.syncing_hint", fallback: "Checking your Steam session and loading app details.")
+                    )
                     Spacer()
                 } else if !wishlistManager.isSteamSignedIn {
                     VStack(spacing: 14) {
@@ -42,7 +52,7 @@ public struct WishlistView: View {
                             .padding(.horizontal, 20)
 
                         NavigationLink {
-                            WebFallbackShellView(url: URL(string: "https://store.steampowered.com/login/")!, title: L10n.tr("steam.sign_in", fallback: "Sign in with Steam"))
+                            WebFallbackShellView(url: AppURLs.steamStoreLogin, title: L10n.tr("steam.sign_in", fallback: "Sign in with Steam"))
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "person.crop.circle.badge.plus")
@@ -55,19 +65,25 @@ public struct WishlistView: View {
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
+
+                        Button {
+                            Task { await viewModel.loadWishlist() }
+                        } label: {
+                            Text(L10n.tr("common.retry", fallback: "Retry"))
+                                .font(.callout.weight(.semibold))
+                        }
                     }
                     .padding(.top, 40)
                     Spacer()
                 } else if viewModel.wishlistedApps.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "heart.slash")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
-                        Text(L10n.tr("wishlist.empty_steam", fallback: "Your Steam wishlist is empty"))
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
+                    VStack(spacing: 14) {
+                        ContentStatusView(
+                            kind: .empty,
+                            title: L10n.tr("wishlist.empty_steam", fallback: "Your Steam wishlist is empty"),
+                            message: L10n.tr("wishlist.empty_steam_hint", fallback: "Open your Steam wishlist in web mode or refresh after adding games.")
+                        )
                         NavigationLink {
-                            WebFallbackShellView(url: URL(string: "https://store.steampowered.com/wishlist/")!, title: L10n.tr("wishlist.steam_title", fallback: "Steam Wishlist"))
+                            WebFallbackShellView(url: AppURLs.steamStoreWishlist, title: L10n.tr("wishlist.steam_title", fallback: "Steam Wishlist"))
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "heart.text.square")
@@ -86,6 +102,17 @@ public struct WishlistView: View {
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 12) {
+                            if let partialLoadMessage = viewModel.partialLoadMessage {
+                                ContentStatusView(
+                                    kind: .info,
+                                    title: L10n.tr("wishlist.partial_title", fallback: "Partially loaded"),
+                                    message: partialLoadMessage,
+                                    actionTitle: L10n.tr("common.retry", fallback: "Retry")
+                                ) {
+                                    Task { await viewModel.loadWishlist() }
+                                }
+                            }
+
                             ForEach(viewModel.wishlistedApps) { app in
                                 NavigationLink {
                                     AppDetailView(appID: app.id, dataSource: dataSource)
@@ -105,7 +132,7 @@ public struct WishlistView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 NavigationLink {
-                    WebFallbackShellView(url: URL(string: "https://store.steampowered.com/login/")!, title: L10n.tr("steam.sign_in", fallback: "Sign in with Steam"))
+                    WebFallbackShellView(url: AppURLs.steamStoreLogin, title: L10n.tr("steam.sign_in", fallback: "Sign in with Steam"))
                 } label: {
                     Image(systemName: "person.crop.circle.badge.plus")
                 }
@@ -121,7 +148,7 @@ public struct WishlistView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
-                    WebFallbackShellView(url: URL(string: "https://store.steampowered.com/wishlist/")!, title: L10n.tr("wishlist.steam_title", fallback: "Steam Wishlist"))
+                    WebFallbackShellView(url: AppURLs.steamStoreWishlist, title: L10n.tr("wishlist.steam_title", fallback: "Steam Wishlist"))
                 } label: {
                     Image(systemName: "safari")
                 }
@@ -266,7 +293,7 @@ struct WishlistRow: View {
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                         .frame(width: 36, height: 36)
-                        .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSecondary).interactive(), in: .circle)
+                        .background(LiquidGlassTheme.Colors.neonSecondary.opacity(0.22), in: Circle())
                         .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
                 }
                 .buttonStyle(.plain)
@@ -308,4 +335,3 @@ private struct WishlistCapsuleImage: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
-

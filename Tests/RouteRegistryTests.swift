@@ -33,4 +33,16 @@ final class RouteRegistryTests: XCTestCase {
         XCTAssertEqual(resolution.normalizedPath, "/tags")
         XCTAssertEqual(resolution.descriptor.mode, .webFallback)
     }
+
+    func testUtilityRoutesCarryFallbackOverrides() {
+        let registry = RouteRegistry()
+
+        let events = registry.resolve(path: "/events")
+        XCTAssertEqual(events.descriptor.webURLOverride, "https://steamdb.info/sales/history/")
+        XCTAssertEqual(events.descriptor.fallbackWebURL, "https://store.steampowered.com/news/")
+
+        let wishlist = registry.resolve(path: "/wishlist")
+        XCTAssertEqual(wishlist.descriptor.webURLOverride, "https://store.steampowered.com/wishlist/")
+        XCTAssertNil(wishlist.descriptor.fallbackWebURL)
+    }
 }

@@ -161,10 +161,6 @@ public final class SteamWishlistSyncService {
     }
 
     private func fetchWishlistPayload(cookies: [HTTPCookie]) async throws -> SteamUserDataPayload {
-        guard let url = URL(string: "https://store.steampowered.com/dynamicstore/userdata/") else {
-            throw SteamWishlistSyncError.invalidResponse
-        }
-
         let config = URLSessionConfiguration.ephemeral
         let cookieStorage = HTTPCookieStorage()
         config.httpCookieStorage = cookieStorage
@@ -174,7 +170,7 @@ public final class SteamWishlistSyncService {
         }
 
         let session = URLSession(configuration: config)
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        var request = URLRequest(url: AppURLs.steamStoreUserData, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("SteamDBCompanion-iOS", forHTTPHeaderField: "User-Agent")

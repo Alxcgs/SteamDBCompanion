@@ -39,6 +39,19 @@ final class WishlistSyncStateTests: XCTestCase {
         XCTAssertNil(manager.syncError)
     }
 
+    func testStoredSyncMetadataRestoresOnNewManager() {
+        let now = Date()
+        manager.applySyncFailure("rate limited", authenticated: true)
+        manager.applySyncSuccess(appIDs: [730], syncedAt: now)
+
+        let restored = WishlistManager()
+        XCTAssertEqual(restored.syncState, .synced)
+        XCTAssertEqual(restored.steamAuthState, .signedIn)
+        XCTAssertEqual(restored.wishlist, Set([730]))
+        XCTAssertEqual(restored.lastSyncAt?.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.001)
+        XCTAssertNil(restored.syncError)
+    }
+
     private func clearStoredState() {
         let defaults = UserDefaults.standard
         [
@@ -50,4 +63,3 @@ final class WishlistSyncStateTests: XCTestCase {
         ].forEach { defaults.removeObject(forKey: $0) }
     }
 }
-

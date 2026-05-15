@@ -2,8 +2,11 @@ import Foundation
 import UserNotifications
 import UIKit
 import Combine
+import OSLog
 
 class PushNotificationManager: NSObject, ObservableObject {
+    private static let logger = Logger(subsystem: "com.steamdb.SteamDBCompanion", category: "PushNotifications")
+
     @Published var isAuthorized = false
     
     override init() {
@@ -42,7 +45,7 @@ extension PushNotificationManager: UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         // Handle deep linking based on payload
         let userInfo = response.notification.request.content.userInfo
-        print("Received notification: \(userInfo)")
+        Self.logger.debug("Received notification response with \(userInfo.count, privacy: .public) payload keys.")
         completionHandler()
     }
 }

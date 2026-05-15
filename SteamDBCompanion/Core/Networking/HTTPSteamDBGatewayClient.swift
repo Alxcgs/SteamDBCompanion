@@ -32,7 +32,7 @@ public actor HTTPSteamDBGatewayClient: SteamDBGatewayClient {
             self.baseURL = savedURL
             self.isConfigured = true
         } else {
-            self.baseURL = URL(string: "https://invalid.local")!
+            self.baseURL = AppURLs.invalidGateway
             self.isConfigured = false
         }
 

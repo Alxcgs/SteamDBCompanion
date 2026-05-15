@@ -229,24 +229,24 @@ public struct AppDetailView: View {
                                     style: isWishlisted ? .primary : .secondary
                                 ) {
                                     if !isSteamSignedIn {
-                                        storeURL = URL(string: "https://store.steampowered.com/login/")
+                                        storeURL = AppURLs.steamStoreLogin
                                         inAppWebTitle = L10n.tr("steam.sign_in", fallback: "Sign in with Steam")
                                         openStoreInApp = true
                                         return
                                     }
 
                                     if isWishlisted {
-                                        storeURL = URL(string: "https://store.steampowered.com/wishlist/")
+                                        storeURL = AppURLs.steamStoreWishlist
                                         inAppWebTitle = L10n.tr("wishlist.steam_title", fallback: "Steam Wishlist")
                                         openStoreInApp = true
                                     } else {
-                                        storeURL = URL(string: "https://store.steampowered.com/app/\(app.id)/")
+                                        storeURL = AppURLs.steamStoreApp(id: app.id)
                                         showStoreDestinationSheet = true
                                     }
                                 }
                                 
                                 GlassButton(L10n.tr("app_detail.store", fallback: "Store"), icon: "cart", style: .primary) {
-                                    storeURL = URL(string: "https://store.steampowered.com/app/\(app.id)/")
+                                    storeURL = AppURLs.steamStoreApp(id: app.id)
                                     inAppWebTitle = L10n.tr("app_detail.store", fallback: "Store")
                                     showStoreDestinationSheet = true
                                 }

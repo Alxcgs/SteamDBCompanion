@@ -30,14 +30,12 @@ public struct HomeView: View {
 
                             Spacer()
 
-                            GlassEffectContainer(spacing: 16) {
-                                HStack(spacing: 12) {
-                                    NavigationLink(destination: WishlistView(dataSource: dataSource, wishlistManager: wishlistManager)) {
-                                        WishlistHeartBubble(count: wishlistManager.wishlist.count)
-                                            .accessibilityLabel(Text(L10n.tr("wishlist.title", fallback: "Wishlist")))
-                                    }
-                                    .buttonStyle(.plain)
+                            HStack(spacing: 12) {
+                                NavigationLink(destination: WishlistView(dataSource: dataSource, wishlistManager: wishlistManager)) {
+                                    WishlistHeartBubble(count: wishlistManager.wishlist.count)
+                                        .accessibilityLabel(Text(L10n.tr("wishlist.title", fallback: "Wishlist")))
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -91,11 +89,13 @@ public struct HomeView: View {
                                         }
                                     }
                                 } else {
-                                    // iPhone: Horizontal scroll
                                     ScrollView(.horizontal) {
                                         HStack(spacing: 16) {
                                             ForEach(viewModel.trendingApps) { app in
-                                                TrendingAppCard(app: app)
+                                                NavigationLink(value: app) {
+                                                    TrendingAppCard(app: app)
+                                                }
+                                                .buttonStyle(.plain)
                                             }
                                         }
                                     }
@@ -170,41 +170,38 @@ struct TrendingAppCard: View {
     private let capsuleAspectRatio: CGFloat = 184.0 / 69.0
     
     var body: some View {
-        NavigationLink(value: app) {
-            GlassCard(padding: 0) {
-                VStack(alignment: .leading) {
-                    SteamCapsuleImage(imageURL: app.headerImageURL, cornerRadius: 0)
-                        .aspectRatio(capsuleAspectRatio, contentMode: .fit)
+        GlassCard(padding: 0) {
+            VStack(alignment: .leading) {
+                SteamCapsuleImage(imageURL: app.headerImageURL, cornerRadius: 0)
+                    .aspectRatio(capsuleAspectRatio, contentMode: .fit)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(app.name)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(app.name)
-                            .font(.headline)
-                            .lineLimit(1)
+                    if let price = app.price {
+                        Text(price.formatted)
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
-                        
-                        if let price = app.price {
-                            Text(price.formatted)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSuccess).interactive(), in: .capsule)
-                        } else {
-                            Text(L10n.tr("common.free", fallback: "Free"))
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSuccess).interactive(), in: .capsule)
-                        }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(LiquidGlassTheme.Colors.neonSuccess.opacity(0.22), in: Capsule())
+                    } else {
+                        Text(L10n.tr("common.free", fallback: "Free"))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(LiquidGlassTheme.Colors.neonSuccess.opacity(0.22), in: Capsule())
                     }
-                    .padding(12)
                 }
-                .frame(width: DeviceInfo.isIPad ? nil : 200)
-                .frame(maxWidth: DeviceInfo.isIPad ? .infinity : nil)
+                .padding(12)
             }
+            .frame(width: DeviceInfo.isIPad ? nil : 200)
+            .frame(maxWidth: DeviceInfo.isIPad ? .infinity : nil)
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -241,7 +238,7 @@ struct TopSellerRow: View {
                             .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSuccess).interactive(), in: .capsule)
+                            .background(LiquidGlassTheme.Colors.neonSuccess.opacity(0.22), in: Capsule())
                     }
                 }
             }
@@ -299,7 +296,7 @@ private struct WishlistHeartBubble: View {
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(LiquidGlassTheme.Colors.textPrimary)
             .frame(width: 36, height: 36)
-            .glassEffect(.regular.tint(LiquidGlassTheme.Colors.neonSecondary).interactive(), in: .circle)
+            .background(LiquidGlassTheme.Colors.neonSecondary.opacity(0.22), in: Circle())
             .overlay(alignment: .topTrailing) {
                 if hasItems {
                     Text(String(min(count, 99)))

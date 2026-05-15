@@ -6,13 +6,13 @@ public final class RealSteamDBDataSource: SteamDBDataSource {
     private let repository: SteamDBRepository
     private let networking: NetworkingService
     private let parser: HTMLParser
-    private let baseURL = URL(string: "https://steamdb.info")!
-    private let storeFeaturedBaseURL = URL(string: "https://store.steampowered.com/api/featuredcategories/")!
-    private let storeSearchBaseURL = URL(string: "https://store.steampowered.com/api/storesearch/")!
-    private let storeSearchResultsBaseURL = URL(string: "https://store.steampowered.com/search/results/")!
-    private let storeAppDetailsBaseURL = URL(string: "https://store.steampowered.com/api/appdetails")!
-    private let steamCurrentPlayersBaseURL = URL(string: "https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/")!
-    private let steamChartsBaseURL = URL(string: "https://steamcharts.com/app/")!
+    private let baseURL = AppURLs.steamDB
+    private let storeFeaturedBaseURL = AppURLs.steamStoreFeaturedCategories
+    private let storeSearchBaseURL = AppURLs.steamStoreSearch
+    private let storeSearchResultsBaseURL = AppURLs.steamStoreSearchResults
+    private let storeAppDetailsBaseURL = AppURLs.steamStoreAppDetails
+    private let steamCurrentPlayersBaseURL = AppURLs.steamCurrentPlayers
+    private let steamChartsBaseURL = AppURLs.steamChartsApp
     
     public init(
         gateway: SteamDBGatewayClient = HTTPSteamDBGatewayClient(),

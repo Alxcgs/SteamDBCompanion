@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 public struct CacheLookup<T> {
     public let value: T
@@ -9,6 +10,7 @@ public struct CacheLookup<T> {
 public actor CacheService {
     
     public static let shared = CacheService()
+    private static let logger = Logger(subsystem: "com.steamdb.SteamDBCompanion", category: "CacheService")
     private let fileManager = FileManager.default
     private let cacheDirectory: URL
     
@@ -26,7 +28,7 @@ public actor CacheService {
             let data = try JSONEncoder().encode(object)
             try data.write(to: fileURL)
         } catch {
-            print("Cache save failed: \(error)")
+            Self.logger.error("Cache save failed: \(error.localizedDescription, privacy: .public)")
         }
     }
     
@@ -61,7 +63,7 @@ public actor CacheService {
             let decoded = try JSONDecoder().decode(T.self, from: data)
             return CacheLookup(value: decoded, age: age, isExpired: age > expiration)
         } catch {
-            print("Cache load failed: \(error)")
+            Self.logger.error("Cache load failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

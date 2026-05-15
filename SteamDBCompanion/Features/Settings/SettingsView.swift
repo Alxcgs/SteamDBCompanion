@@ -103,21 +103,21 @@ public struct SettingsView: View {
                             }
 
                             NavigationLink {
-                                WebFallbackShellView(url: URL(string: "https://store.steampowered.com/login/")!, title: L10n.tr("steam.sign_in", fallback: "Sign in with Steam"))
+                                WebFallbackShellView(url: AppURLs.steamStoreLogin, title: L10n.tr("steam.sign_in", fallback: "Sign in with Steam"))
                             } label: {
                                 settingsLinkLabel(L10n.tr("steam.sign_in", fallback: "Sign in with Steam"), icon: "person.crop.circle.badge.plus")
                             }
                             .buttonStyle(.plain)
 
                             NavigationLink {
-                                WebFallbackShellView(url: URL(string: "https://store.steampowered.com/wishlist/")!, title: L10n.tr("wishlist.steam_title", fallback: "Steam Wishlist"))
+                                WebFallbackShellView(url: AppURLs.steamStoreWishlist, title: L10n.tr("wishlist.steam_title", fallback: "Steam Wishlist"))
                             } label: {
                                 settingsLinkLabel(L10n.tr("settings.open_steam_wishlist", fallback: "Open Steam Wishlist"), icon: "heart.text.square")
                             }
                             .buttonStyle(.plain)
 
                             NavigationLink {
-                                WebFallbackShellView(url: URL(string: "https://store.steampowered.com/news/")!, title: L10n.tr("settings.open_steam_news", fallback: "Open Steam News"))
+                                WebFallbackShellView(url: AppURLs.steamStoreNews, title: L10n.tr("settings.open_steam_news", fallback: "Open Steam News"))
                             } label: {
                                 settingsLinkLabel(L10n.tr("settings.open_steam_news", fallback: "Open Steam News"), icon: "newspaper")
                             }
@@ -242,7 +242,7 @@ public struct SettingsView: View {
                                 .foregroundStyle(.secondary)
 
                             NavigationLink {
-                                WebFallbackShellView(url: URL(string: "https://steamdb.info/")!, title: "SteamDB")
+                                WebFallbackShellView(url: AppURLs.steamDB, title: "SteamDB")
                             } label: {
                                 settingsLinkLabel(L10n.tr("settings.open_steamdb", fallback: "Open SteamDB"), icon: "safari")
                             }

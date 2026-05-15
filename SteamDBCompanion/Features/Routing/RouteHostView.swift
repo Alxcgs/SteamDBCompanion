@@ -18,17 +18,13 @@ public struct RouteHostView: View {
     @ViewBuilder
     private var content: some View {
         if resolution.descriptor.mode == .webFallback {
-            let primaryURL = URL(string: resolution.descriptor.webURLOverride ?? "https://steamdb.info\(resolution.normalizedPath)")
+            let primaryURL = resolution.descriptor.webURLOverride.flatMap(URL.init(string:)) ?? AppURLs.steamDB(path: resolution.normalizedPath)
             let fallbackURL = resolution.descriptor.fallbackWebURL.flatMap(URL.init(string:))
-            if let primaryURL {
-                WebFallbackShellView(
-                    url: primaryURL,
-                    title: resolution.descriptor.title,
-                    fallbackURL: fallbackURL
-                )
-            } else {
-                WebFallbackShellView(path: resolution.normalizedPath, title: resolution.descriptor.title)
-            }
+            WebFallbackShellView(
+                url: primaryURL,
+                title: resolution.descriptor.title,
+                fallbackURL: fallbackURL
+            )
         } else if let appID = extractAppID(from: resolution.normalizedPath) {
             AppDetailView(appID: appID, dataSource: dataSource)
         } else if resolution.normalizedPath == "/" {
@@ -67,17 +63,29 @@ private struct NativeRouteCollectionView: View {
                 .ignoresSafeArea()
 
             if isLoading {
-                ProgressView("\(L10n.tr("common.loading", fallback: "Loading...")) \(title)...")
+                ContentStatusView(
+                    kind: .loading,
+                    title: "\(L10n.tr("common.loading", fallback: "Loading...")) \(title)",
+                    message: L10n.tr("routes.loading_hint", fallback: "Fetching the latest SteamDB data for this page.")
+                )
             } else if let errorMessage {
-                VStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.title)
-                        .foregroundStyle(LiquidGlassTheme.Colors.neonWarning)
-                    Text(errorMessage)
-                        .font(.callout)
-                        .multilineTextAlignment(.center)
+                ContentStatusView(
+                    kind: .error,
+                    title: L10n.tr("routes.error_title", fallback: "Could not load page"),
+                    message: errorMessage,
+                    actionTitle: L10n.tr("common.retry", fallback: "Retry")
+                ) {
+                    Task { await load() }
                 }
-                .padding()
+            } else if apps.isEmpty {
+                ContentStatusView(
+                    kind: .empty,
+                    title: L10n.tr("routes.empty_title", fallback: "Nothing here yet"),
+                    message: L10n.tr("routes.empty_message", fallback: "SteamDB did not return items for this page right now."),
+                    actionTitle: L10n.tr("common.retry", fallback: "Retry")
+                ) {
+                    Task { await load() }
+                }
             } else {
                 List(apps) { app in
                     NavigationLink {
@@ -104,6 +112,9 @@ private struct NativeRouteCollectionView: View {
             }
         }
         .task {
+            await load()
+        }
+        .refreshable {
             await load()
         }
     }
