@@ -12,7 +12,12 @@ public final class RouteRegistry: RouteResolver {
     public func resolve(url: URL) -> RouteResolution {
         let fallbackPath = url.path.isEmpty ? "/" : url.path
         let path = Self.normalizePath(fallbackPath)
-        return resolve(path: path)
+        let resolved = resolve(path: path)
+        return RouteResolution(
+            descriptor: resolved.descriptor,
+            normalizedPath: resolved.normalizedPath,
+            originalURL: url
+        )
     }
 
     public func resolve(path: String) -> RouteResolution {

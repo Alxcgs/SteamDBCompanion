@@ -3,7 +3,7 @@ import Combine
 
 @MainActor
 public final class DeepLinkRouter: ObservableObject {
-    @Published public var presentedPath: String?
+    @Published public var presentedURL: URL?
 
     public init() {}
 
@@ -11,11 +11,10 @@ public final class DeepLinkRouter: ObservableObject {
         guard let host = url.host?.lowercased() else { return }
         guard host == "steamdb.info" || host == "www.steamdb.info" else { return }
 
-        let path = url.path.isEmpty ? "/" : url.path
-        presentedPath = path
+        presentedURL = url
     }
 
     public func dismiss() {
-        presentedPath = nil
+        presentedURL = nil
     }
 }

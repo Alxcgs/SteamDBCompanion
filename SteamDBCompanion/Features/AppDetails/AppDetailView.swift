@@ -156,7 +156,7 @@ public struct AppDetailView: View {
                                     HStack(spacing: 16) {
                                         ForEach(app.platforms, id: \.self) { platform in
                                             HStack {
-                                                Image(systemName: platformIcon(for: platform))
+                                                Image(systemName: platform.icon)
                                                 Text(platform.rawValue.capitalized)
                                             }
                                             .padding(8)
@@ -285,13 +285,7 @@ public struct AppDetailView: View {
         }
     }
     
-    func platformIcon(for platform: Platform) -> String {
-        switch platform {
-        case .windows: return "desktopcomputer"
-        case .mac: return "apple.logo"
-        case .linux: return "penguin" // SF Symbols doesn't have penguin, fallback
-        }
-    }
+
 }
 
 private extension AppDetailView {

@@ -86,10 +86,18 @@ public struct PriceInfo: Codable, Hashable {
 
     private func preferredLocale() -> Locale {
         let countryRaw = UserDefaults.standard.string(forKey: "steamStoreCountryCode")?.lowercased() ?? "auto"
-        let languageRaw = UserDefaults.standard.string(forKey: "appLanguageMode")?.lowercased()
-            ?? UserDefaults.standard.string(forKey: "steamStoreLanguageCode")?.lowercased()
-            ?? Locale.current.language.languageCode?.identifier.lowercased()
-            ?? "en"
+        let languageSetting = UserDefaults.standard.string(forKey: "appLanguageMode")?.lowercased() ?? "system"
+        let languageRaw: String
+        if languageSetting == "en" || languageSetting == "uk" {
+            languageRaw = languageSetting
+        } else {
+            let savedStoreLang = UserDefaults.standard.string(forKey: "steamStoreLanguageCode")?.lowercased()
+            if let savedStoreLang, savedStoreLang.count == 2 {
+                languageRaw = savedStoreLang
+            } else {
+                languageRaw = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+            }
+        }
 
         if countryRaw == "auto" || countryRaw.count != 2 {
             if languageRaw.count == 2 {

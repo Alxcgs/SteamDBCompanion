@@ -92,16 +92,16 @@ struct ContentView: View {
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
         }
         .sheet(isPresented: Binding(
-            get: { deepLinkRouter.presentedPath != nil },
+            get: { deepLinkRouter.presentedURL != nil },
             set: { isPresented in
                 if !isPresented {
                     deepLinkRouter.dismiss()
                 }
             }
         )) {
-            if let path = deepLinkRouter.presentedPath {
+            if let url = deepLinkRouter.presentedURL {
                 NavigationStack {
-                    RouteHostView(path: path, dataSource: dataSource)
+                    RouteHostView(url: url, dataSource: dataSource)
                         .toolbar {
                             ToolbarItem(placement: .topBarTrailing) {
                                 Button("Done") {

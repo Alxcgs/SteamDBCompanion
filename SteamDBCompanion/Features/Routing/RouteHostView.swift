@@ -9,6 +9,11 @@ public struct RouteHostView: View {
         self.resolution = resolver.resolve(path: path)
     }
 
+    public init(url: URL, dataSource: SteamDBDataSource, resolver: RouteResolver = RouteRegistry.shared) {
+        self.dataSource = dataSource
+        self.resolution = resolver.resolve(url: url)
+    }
+
     public var body: some View {
         content
             .navigationTitle(resolution.descriptor.title)
@@ -18,7 +23,12 @@ public struct RouteHostView: View {
     @ViewBuilder
     private var content: some View {
         if resolution.descriptor.mode == .webFallback {
-            let primaryURL = resolution.descriptor.webURLOverride.flatMap(URL.init(string:)) ?? AppURLs.steamDB(path: resolution.normalizedPath)
+            let primaryURL: URL
+            if let original = resolution.originalURL, original.host?.contains("steamdb.info") == true {
+                primaryURL = original
+            } else {
+                primaryURL = resolution.descriptor.webURLOverride.flatMap(URL.init(string:)) ?? AppURLs.steamDB(path: resolution.normalizedPath)
+            }
             let fallbackURL = resolution.descriptor.fallbackWebURL.flatMap(URL.init(string:))
             WebFallbackShellView(
                 url: primaryURL,

@@ -73,7 +73,7 @@ public final class UpdatesViewModel: ObservableObject {
         steamNews = await globalNewsTask
     }
 
-    private func fetchGlobalSteamNews() async -> [SteamNewsItem] {
+    nonisolated private func fetchGlobalSteamNews() async -> [SteamNewsItem] {
         do {
             var request = URLRequest(url: AppURLs.steamStoreNewsFeed, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 20)
             request.setValue("application/rss+xml, text/xml;q=0.9, */*;q=0.8", forHTTPHeaderField: "Accept")
@@ -96,7 +96,7 @@ public final class UpdatesViewModel: ObservableObject {
         }
     }
 
-    private func fetchWishlistNews(appIDs: [Int]) async -> [SteamNewsItem] {
+    nonisolated private func fetchWishlistNews(appIDs: [Int]) async -> [SteamNewsItem] {
         let ids = Array(appIDs.prefix(12))
         guard !ids.isEmpty else { return [] }
 
@@ -127,7 +127,7 @@ public final class UpdatesViewModel: ObservableObject {
         return deduped
     }
 
-    private func fetchNewsForApp(appID: Int) async -> [SteamNewsItem] {
+    nonisolated private func fetchNewsForApp(appID: Int) async -> [SteamNewsItem] {
         var components = URLComponents(url: AppURLs.steamAppNews, resolvingAgainstBaseURL: false)
         components?.queryItems = [
             URLQueryItem(name: "appid", value: "\(appID)"),
@@ -163,7 +163,7 @@ public final class UpdatesViewModel: ObservableObject {
         }
     }
 
-    private func parseNewsFeed(xml: String, source: SteamNewsSource, appID: Int?) -> [SteamNewsItem] {
+    nonisolated private func parseNewsFeed(xml: String, source: SteamNewsSource, appID: Int?) -> [SteamNewsItem] {
         guard let itemRegex = try? NSRegularExpression(pattern: #"<item[^>]*>([\s\S]*?)</item>"#, options: [.caseInsensitive]) else {
             return []
         }
@@ -210,7 +210,7 @@ public final class UpdatesViewModel: ObservableObject {
         return items
     }
 
-    private func firstCapture(in text: String, pattern: String) -> String? {
+    nonisolated private func firstCapture(in text: String, pattern: String) -> String? {
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
             return nil
         }
@@ -222,7 +222,7 @@ public final class UpdatesViewModel: ObservableObject {
         return ns.substring(with: match.range(at: 1))
     }
 
-    private func decodeHTML(_ value: String) -> String {
+    nonisolated private func decodeHTML(_ value: String) -> String {
         value
             .replacingOccurrences(of: "&amp;", with: "&")
             .replacingOccurrences(of: "&quot;", with: "\"")

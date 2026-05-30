@@ -50,10 +50,12 @@ public struct RouteDescriptor: Identifiable, Codable, Hashable {
 public struct RouteResolution: Hashable {
     public let descriptor: RouteDescriptor
     public let normalizedPath: String
+    public let originalURL: URL?
 
-    public init(descriptor: RouteDescriptor, normalizedPath: String) {
+    public init(descriptor: RouteDescriptor, normalizedPath: String, originalURL: URL? = nil) {
         self.descriptor = descriptor
         self.normalizedPath = normalizedPath
+        self.originalURL = originalURL
     }
 }
 

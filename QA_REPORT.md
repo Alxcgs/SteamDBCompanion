@@ -78,6 +78,28 @@ All declared routes mapped and mode-assigned.
 - Swift warning in `InAppAlertEngine` about actor-isolated default initializer remains (does not fail build).
 - No dedicated XCTest action is configured in project scheme; regression is validated via build/typecheck/parity and code-path verification.
 
+## Additional Fixes & Optimizations (Session 2)
+
+1. **Deep Link Query Parameter Preservation**
+   - **Bug:** `DeepLinkRouter` forwarded only `url.path` to `presentedPath`, discarding vital query parameters (e.g. tracking info, regional overrides, search parameters).
+   - **Fix:** Changed `DeepLinkRouter` to store `presentedURL: URL?` and added a URL-based initializer to `RouteHostView` and `RouteRegistry`. Web views now load the original URL directly, preserving query parameters and hashes.
+   - **Status:** FIXED & VERIFIED
+
+2. **Localization & Currency Fallback Safety**
+   - **Bug:** If the user selected the "System" language mode, `preferredLocale()` formed identifiers like `"system_US"`, leading to invalid locale initialization.
+   - **Fix:** Patched `preferredLocale()` in `AppModel.swift` to properly resolve `"system"` into system-defined or store-defined languages, preventing formatting corruption.
+   - **Status:** FIXED & VERIFIED
+
+3. **Linux Platform Icon SF Symbol**
+   - **Bug:** `AppDetailView` attempted to map the Linux platform to `penguin`, which is not a valid SF Symbol, displaying nothing or a broken icon.
+   - **Fix:** Switched `AppDetailView` to use `platform.icon` which uses the correct standard SF Symbol `server.rack`.
+   - **Status:** FIXED & VERIFIED
+
+4. **Task Concurrency and Main Actor Serialization**
+   - **Bug:** In `UpdatesViewModel`, helper functions for XML parsing and network fetching (`fetchNewsForApp`, `fetchGlobalSteamNews`, etc.) were implicitly isolated to `@MainActor`, blocking the UI thread and executing sequentially.
+   - **Fix:** Marked helper methods as `nonisolated` to enable concurrent execution on the background queue and avoid main thread hops.
+   - **Status:** FIXED & VERIFIED
+
 ## Manual validation matrix (must run on simulator + device)
 
 1. Utility routes (`/events`, `/year`, `/wishlist`)
